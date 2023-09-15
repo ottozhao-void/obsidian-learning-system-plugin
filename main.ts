@@ -30,8 +30,9 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('lucide-file', 'Sample Plugin', (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('lucide-file', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
+			await new Mechanism(this.app).select("math")
 			new Notice('This is a notice!');
 		});
 		const ribbonHello = this.addRibbonIcon('dice','Greet',()=>{
@@ -65,8 +66,7 @@ export default class MyPlugin extends Plugin {
 			name: 'Sample editor command',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				console.log(editor.getSelection());
-				editor.replaceSelection(await new Mechanism(this.app).updateExerciseBaseContent()
-			);
+				editor.replaceSelection("1");
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command

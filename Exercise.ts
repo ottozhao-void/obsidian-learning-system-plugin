@@ -17,7 +17,6 @@ import {getAPI,DataArray,Literal} from 'obsidian-dataview';
 import {Interface} from "readline";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 
-
 interface ExcalidrawFile {
 	fileName: string;
 	fileContent: string
@@ -40,14 +39,14 @@ const exerciseBases: Record<string, ExerciseBaseInfo> ={
 
 export class Exercise{
 	// private app: App;
-	private link:string
+	public link:string
 	constructor(link:string) {
 		this.link = link;
 	}
 	toString() {
 		return `{\n${
 			Object.entries(this)
-				.map(([key, value]) => `${key}:\"${value}\"`)
+				.map(([key, value]) => `"${key}":\"${value}\"`)
 				.join(",\n")
 		}\n}`
 	}
@@ -56,7 +55,7 @@ export class Exercise{
 export class Mechanism {
 	private app:App;
 	private dataViewAPI = getAPI() as DataviewApi ;
-	constructor(app:App, link:string) {
+	constructor(app:App) {
 		this.app = app;
 	}
 
@@ -79,10 +78,11 @@ export class Mechanism {
 		}
 	}
 	generateContentFromExerciseBlocks(exerciseBlocks:string[]): string {
-		return `\`\`\`json\n${
+		return `\`\`\`json\n{\n"exercises":[${
 			this.link2Exercise(exerciseBlocks)
 				.map(ex => ex.toString())
 				.join(",\n")
+		}]
 		}\n\`\`\``;
 	}
 	async writeContentToFile(baseFile: any, baseFilePath: string, content: string) {
@@ -118,11 +118,6 @@ export class Mechanism {
 				.map(el => `[[${ef.fileName}#^${el.id}]]`)
 		})
 	}
-	extractJSON(elContent:string): any{
-		const jsonPattern = /```json\n([\s\S]*?)\n```/g;
-		const match = jsonPattern.exec(elContent);
-		return match && match[1] ? JSON.parse(match[1]) : null;
-	}
 	private link2Exercise(exerciseBlocks: string[]): Exercise[] {
 		return exerciseBlocks.map(link => new Exercise(link));
 	}
@@ -135,17 +130,39 @@ export class Mechanism {
 	*
 	* return exercise: Exercise
 	* */
-	select(subject:string): Exercise{
-	const {baseFilePath,baseTag} = exerciseBases[subject];
-	const allExercises: Exercise[] = this.getAllExercises(baseFilePath);
-	return allExercises.filter(ex => this.strategy(ex))[0];
+	async select(subject:string): Promise<void> {
+		const {baseFilePath} = exerciseBases[subject];
+		const allExercises: Exercise[] = await this.getAllExercises(baseFilePath);
+		const exercise = allExercises.filter(ex => this.strategy(ex))[1]
+		const link = this.getExerciseLink(exercise);
+		this.app.workspace.openLinkText(link,baseFilePath,true)
+		// return allExercises.filter(ex => this.strategy(ex))[0];
 	}
 
-	private getAllExercises(baseFilePath: string):Exercise[] {
-		return [];
+	public async getAllExercises(baseFilePath: string):Promise<Exercise[]> {
+		const baseTFile = this.app.metadataCache.getFirstLinkpathDest(baseFilePath,baseFilePath)
+		if (baseTFile) {
+			const baseFileContent = await this.app.vault.read(baseTFile);
+			const exerciseJSON = this.extractJSON(baseFileContent);
+			return exerciseJSON.exercises.map((ex: Exercise)=>new Exercise(ex.link));
+		}
+		else{
+			new Notice("No such a base file!")
+			return [];
+		}
 	}
 
 	private strategy(ex: Exercise) {
-		return undefined;
+		return ex;
+	}
+	extractJSON(elContent:string): any{
+		const jsonPattern = /```json\n([\s\S]*?)\n```/g;
+		const match = jsonPattern.exec(elContent);
+		return match && match[1] ? JSON.parse(match[1]) : null;
+	}
+
+	private getExerciseLink(exercise: Exercise): string {
+		const match = exercise.link.match(/\[\[(.*?)\]\]/);
+		return match? match[1] : "";
 	}
 }
