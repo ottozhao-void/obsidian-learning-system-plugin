@@ -25,14 +25,15 @@ const DEFAULT_SETTINGS: HelloWorldPlugin = {
 
 export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
-
+	private mechanism = new Mechanism(this.app);
 	async onload() {
 		await this.loadSettings();
+		await this.mechanism.initializeExerciseBase();
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('lucide-file', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			await new Mechanism(this.app).select("math")
+			this.mechanism.select("math");
 			new Notice('This is a notice!');
 		});
 		const ribbonHello = this.addRibbonIcon('dice','Greet',()=>{
