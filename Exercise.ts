@@ -36,6 +36,7 @@ const exerciseBases: Record<string, ExerciseBaseInfo> = {
 		baseTag:"#excalidraw/signals_and_systems"
 	}
 }
+const ExerciseStatus: string[] = ["new","laser","stumble","drifter"];
 
 interface ExerciseWindow {
 	startTimeStamp?: number;
@@ -47,6 +48,7 @@ interface ExerciseWindow {
 interface ExerciseStructure {
 	link: string;
 	type: string;
+	status: string // The status refers to the latest status of the exercise (status of the last ExerciseWindow)
 	lifeline: ExerciseWindow[];
 	id:string
 }
@@ -57,6 +59,7 @@ export class Exercise{
 	public type:string;
 	public lifeline: ExerciseWindow[];
 	public id:string;
+	public status: string
 	constructor(exerciseInfo:ExerciseStructure) {
 		Object.assign(this,exerciseInfo)
 		this.lifeline = exerciseInfo?.lifeline || [];
@@ -94,15 +97,17 @@ export class Exercise{
 export class Mechanism {
 	private app:App;
 	private dataViewAPI = getAPI() as DataviewApi ;
+	private strategy: string = "newFirst";
 	constructor(app:App) {
 		this.app = app;
 	}
 	async initializeExerciseBase(){
 		for (let subject of Object.keys(exerciseBases)){
 			const {baseTag:tag, baseFilePath} = exerciseBases[subject];
-			if(this.isBaseExist(baseFilePath)){
-				return
-			}
+			if(this.isBaseExist(baseFilePath)) {
+				continue
+			};
+
 			const dvPageExcalFiles: DataArray<Record<string, Literal>> = this.dataViewAPI?.pages(tag);
 
 			if (!dvPageExcalFiles.length) {
@@ -142,9 +147,11 @@ export class Mechanism {
 			newContent
 		)
 	}
+
 	private generateJSONBlock(jsonString:string): string {
 		return `\`\`\`json\n{\n"exercises":[\n${jsonString}]\n}\n\`\`\``;
 	}
+
 	async writeContentToFile(baseFile: any, baseFilePath: string, content: string) {
 		if (baseFile) {
 			this.app.vault.modify(baseFile, content);
@@ -152,6 +159,7 @@ export class Mechanism {
 			await this.app.vault.create(baseFilePath, content);
 		}
 	}
+
 	async getFileContent(targetExFiles: DataArray<Record<string, Literal>> ): Promise<string[]> {
 		return Promise.all(
 			targetExFiles?.map(file => {
@@ -161,6 +169,7 @@ export class Mechanism {
 			})
 		);
 	}
+
 	async getExcalidrawFiles(dvPageExcalFiles:DataArray<Record<string, Literal>>): Promise<ExcalidrawFile[]>{
 		const fileContents = await this.getFileContent(dvPageExcalFiles);
 		const fileNames: DataArray<string> = dvPageExcalFiles.map(file => file.file.name) as DataArray<string>;
@@ -170,6 +179,7 @@ export class Mechanism {
 			fileContent: fileContents[index]
 		})).array();
 	}
+
 	private getExerciseBlocks(excalFiles: ExcalidrawFile[]): string[] {
 		return excalFiles.flatMap(ef => {
 			const elements: any[] = this.extractJSON(ef.fileContent)?.elements;
@@ -183,16 +193,40 @@ export class Mechanism {
 		const baseFilePath = exerciseBases[subject]?.baseFilePath;
 
 		const allExercises: Exercise[] = (await this.getExercises(baseFilePath)).map((ex: ExerciseStructure) => new Exercise(ex));
-		const exercise = allExercises.filter(ex => this.strategy(ex))[1]
+		const exercise = this.selectOnStrategy(allExercises);
 
-		exercise.creatNewExerciseWindow();
-		if (exercise) {
-			const link = this.getExerciseLink(exercise);
-			if (link) this.app.workspace.openLinkText(link, baseFilePath, true);
-			// return allExercises.filter(ex => this.strategy(ex))[0];
+		if (exercise){
+			exercise.creatNewExerciseWindow();
+			if (exercise) {
+				const link = this.getExerciseLink(exercise);
+				if (link) this.app.workspace.openLinkText(link, baseFilePath, true);
+				// return allExercises.filter(ex => this.strategy(ex))[0];
+			}
+			this.updateExercise(exercise);
 		}
-		this.updateExercise(exercise);
+		else{
+			new Notice("WTF! No Exercise is selected???? You have to find out why!" +
+				"Right Now!!!")
+		}
 	}
+
+	private selectOnStrategy(exs: Exercise[]): Exercise | null {
+		switch (this.strategy) {
+			case "newFirst":
+				return this.selectRandowmlyFromNew(exs);
+			default:
+				return null
+
+		}
+	}
+
+	private selectRandowmlyFromNew(exercises: Exercise[]): Exercise {
+		const newExercises = exercises.filter(ex => ex.status == "new");
+		const randomIndex = Math.floor(Math.random() * newExercises.length)
+		console.log(randomIndex);
+		return newExercises[randomIndex];
+	}
+
 	async increaseExerciseCount(subject:string):Promise<void>{
 		return ;
 	}
@@ -210,9 +244,6 @@ export class Mechanism {
 			parsedContent.exercises : [];
 	}
 
-	private strategy(ex: Exercise) {
-		return true;
-	}
 
 	private extractJSON(elContent:string): any{
 		const jsonPattern = /```json\n([\s\S]*?)\n```/g;
@@ -227,11 +258,13 @@ export class Mechanism {
 
 	private createNewExercise(exerciseBlocks: string[], type: string) {
 		return exerciseBlocks.map(link => {
-			return new Exercise({link,type,lifeline:[],id:""})
+			return new Exercise({link,type,lifeline:[],id:"",status:ExerciseStatus[0]})
 		});
 	}
 
 	private isBaseExist(baseFilePath:string) {
 		return this.app.vault.getAbstractFileByPath(baseFilePath);
 	}
+
+
 }

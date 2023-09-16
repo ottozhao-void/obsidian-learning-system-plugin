@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS: HelloWorldPlugin = {
 export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
 	private mechanism = new Mechanism(this.app);
+
 	async onload() {
 		await this.loadSettings();
 		await this.mechanism.initializeExerciseBase();
@@ -33,7 +34,8 @@ export default class MyPlugin extends Plugin {
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('lucide-file', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			this.mechanism.select("math");
+			this.mechanism.initializeExerciseBase();
+			this.mechanism.select("DSP");
 			new Notice('This is a notice!');
 		});
 		const ribbonHello = this.addRibbonIcon('dice','Greet',()=>{
@@ -95,9 +97,8 @@ export default class MyPlugin extends Plugin {
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
-		// this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-		// 	console.log('click', evt);
-		// });
+		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+		});
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
