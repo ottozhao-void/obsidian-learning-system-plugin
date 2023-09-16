@@ -92,12 +92,21 @@ export class Exercise{
 		const match = this.link.match(/\^\s*(\S*?)]]/);
 		return match && match[1]? match[1] : "";
 	}
+
+	close() {
+		let ew: ExerciseWindow = this.lifeline.pop() as ExerciseWindow;
+		ew.endTimeStamp = moment().valueOf();
+		ew.status = "laser";
+		this.status = ew.status;
+		this.lifeline.push(ew);
+	}
 }
 
 export class Mechanism {
 	private app:App;
 	private dataViewAPI = getAPI() as DataviewApi ;
 	private strategy: string = "newFirst";
+	private currentExercise: Exercise;
 	constructor(app:App) {
 		this.app = app;
 	}
@@ -132,17 +141,17 @@ export class Mechanism {
 		}
 	}
 
-	async updateExercise(newExercise:Exercise): Promise<void> {
-		const baseFilePath = exerciseBases[newExercise.type].baseFilePath;
+	async updateExercise(): Promise<void> {
+		const baseFilePath = exerciseBases[this.currentExercise.type].baseFilePath;
 		const baseFile = this.app.metadataCache.getFirstLinkpathDest(baseFilePath,baseFilePath) as TFile;
 		const exercises: ExerciseStructure[] = await this.getExercises(baseFilePath)
 		let newContent = this.generateJSONBlock(
-			exercises.filter(ex => ex.id !== newExercise.id)
+			exercises.filter(ex => ex.id !== this.currentExercise.id)
 				.map(ex=>JSON.stringify(ex,null,2))
-				.join(",\n") + `,\n${JSON.stringify(newExercise,null,2)}`
+				.join(",\n") + `,\n${JSON.stringify(this.currentExercise,null,2)}`
 		)
 		// Convert obtained link[] to Exercise[] and write to corresponding files
-		this.app.vault.modify(
+		await this.app.vault.modify(
 			baseFile,
 			newContent
 		)
@@ -193,21 +202,27 @@ export class Mechanism {
 		const baseFilePath = exerciseBases[subject]?.baseFilePath;
 
 		const allExercises: Exercise[] = (await this.getExercises(baseFilePath)).map((ex: ExerciseStructure) => new Exercise(ex));
-		const exercise = this.selectOnStrategy(allExercises);
+		const current_exercise = this.selectOnStrategy(allExercises);
 
-		if (exercise){
-			exercise.creatNewExerciseWindow();
-			if (exercise) {
-				const link = this.getExerciseLink(exercise);
+		if (current_exercise){
+			this.currentExercise = current_exercise;
+			this.currentExercise.creatNewExerciseWindow();
+			if (this.currentExercise) {
+				const link = this.getExerciseLink(this.currentExercise);
 				if (link) this.app.workspace.openLinkText(link, baseFilePath, true);
 				// return allExercises.filter(ex => this.strategy(ex))[0];
 			}
-			this.updateExercise(exercise);
 		}
 		else{
 			new Notice("WTF! No Exercise is selected???? You have to find out why!" +
 				"Right Now!!!")
 		}
+	}
+	async close(){
+		this.currentExercise.close();
+		// const duration = moment.duration()
+		this.updateExercise();
+
 	}
 
 	private selectOnStrategy(exs: Exercise[]): Exercise | null {

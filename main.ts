@@ -97,7 +97,10 @@ export default class MyPlugin extends Plugin {
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+		this.registerDomEvent(document, 'keydown', (ev) => {
+			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {
+				this.mechanism.close();
+			}
 		});
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
