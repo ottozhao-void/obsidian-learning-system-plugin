@@ -29,13 +29,12 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		await this.mechanism.initializeExerciseBase();
+		await this.mechanism.initialize();
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('lucide-file', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			this.mechanism.initializeExerciseBase();
-			this.mechanism.select("DSP");
+			this.mechanism.exerciseBases["math"].query();
 			new Notice('This is a notice!');
 		});
 		const ribbonHello = this.addRibbonIcon('dice','Greet',()=>{
@@ -53,7 +52,9 @@ export default class MyPlugin extends Plugin {
 			id: 'open-sample-modal-simple',
 			name: 'Open sample modal (simple)',
 			callback: () => {
-				new SampleModal(this.app).open();
+				const exercise = this.mechanism.getCurrentExercise();
+				if (exercise) new DemoModal(this.app,exercise).open();
+
 			}
 		});
 		// This adds a command that replaces the selection withe the current time
@@ -99,7 +100,6 @@ export default class MyPlugin extends Plugin {
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {
-				this.mechanism.close();
 			}
 		});
 
@@ -117,6 +117,66 @@ export default class MyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+}
+
+export class DemoModal extends Modal {
+	exercise: Exercise;
+
+	constructor(app: App,exercise: Exercise){
+		super(app);
+		this.exercise = exercise;
+	}
+
+	onOpen() {
+		this.contentEl.createEl("h1",{text:"Hello World"})
+
+		new Setting(this.contentEl)
+			.addButton((button) => {
+				button
+					.setButtonText("Go to Exercise")
+					.onClick(() => {
+						this.exercise.open()
+					})
+			})
+
+		new Setting(this.contentEl)
+			.setName("Data Format")
+			.setDesc("Default Data Format")
+			.addText((tb) => {
+				tb
+					.setPlaceholder("YY:MM:DDDD")
+					.setValue("YYYY:MM:DDDD")
+					.onChange((v) => console.log(v))
+				// console.log(tb.getValue());
+			})
+
+		new Setting((this.contentEl))
+			.addButton((bt) => {
+				bt
+					.setButtonText("Submit")
+					.setTooltip("Hi!😀")
+					.setCta()
+					.onClick((me) => {
+						console.log(me);
+					})
+			})
+
+		new Setting(this.contentEl)
+			.addDropdown(db => {
+				db
+					.addOption("2", "One")
+					.addOption("2","Two")
+					.addOption("3","Three")
+					.onChange((op)=>{
+						console.log(op);
+					});
+				console.log(db.getValue());
+
+			})
+	}
+	onClose() {
+		this.contentEl.empty();
 	}
 }
 
