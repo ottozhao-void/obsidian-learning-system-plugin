@@ -18,7 +18,6 @@ interface ExcalidrawFileInfo {
 	currentContent?: string;
 	elements?: ExcalidrawElement[];
 	path: string;
-	previousContent?: string;
 }
 
 export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
@@ -28,8 +27,7 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 	elements: ExcalidrawElement[];
 	name: string;
 	path: string;
-	previousContent: string;
-	modifyRef: EventRef
+	// modifyRef: EventRef
 
 	constructor(app:App, base: ExerciseBase, excalidrawFileInfo: ExcalidrawFileInfo) {
 		super(app, excalidrawFileInfo.name, excalidrawFileInfo.path)
@@ -37,12 +35,10 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 		this.base = base;
 		Object.assign(this,excalidrawFileInfo);
 
-		this.modifyRef =  this.app.vault.on("modify", this.onFileChange, this);
 	}
 
 	async initilize() {
 		try {
-			this.previousContent = "";
 			this.currentContent = await this.read();
 			this.elements = this.getJSON(this.currentContent).elements;
 		} catch (error) {
@@ -66,44 +62,23 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 
 	}
 
-	// private onFileChange = (file:TAbstractFile) => {
+
+
+	// private async onFileChange(file:TAbstractFile): Promise<void> {
+	// 	this.previousContent = this.currentContent;
 	// 	console.log(`${file.name} Changed!`);
-	// 	console.log('currentContent:', this.currentContent);
-	// 	console.log('previousContent:', this.previousContent);
 	//
-	// 	this.read(file).then(content => {
-	// 		this.previousContent = this.currentContent;
-	// 		this.currentContent = content;
-	// 		this.elements = this.getJSON(this.currentContent).elements;
-	// 		const pElement: ExcalidrawElement[] = this.getJSON(this.previousContent).elements;
-	// 		if (this.elements.length > pElement.length) {
-	// 			const newElement: ExcalidrawElement = this.elements[this.elements.length - 1];
+	// 	this.currentContent = await this.read(file);
+	// 	this.elements = this.getJSON(this.currentContent).elements;
+	// 	const pElement: ExcalidrawElement[] = this.getJSON(this.previousContent).elements;
+	// 	if (this.elements.length > pElement.length) {
+	// 		const newElement: ExcalidrawElement = this.elements[this.elements.length - 1];
 	//
-	// 			const eLinkText = this.getExerciseLinkText(newElement);
+	// 		const eLinkText = this.getExerciseLinkText(newElement);
 	//
-	// 			if (eLinkText) this.base.update(eLinkText); // 假如增加了元素，且符合 EXERCISE_BOX 的才会被更新
-	// 		}
-	// 	}).catch(error => {
-	// 		console.error('Error during file change:', error);
-	// 	});
+	// 		if (eLinkText) this.base.update(eLinkText); // 假如增加了元素，且符合 EXERCISE_BOX 的才会被更新
+	// 	}
 	// }
-
-
-	private async onFileChange(file:TAbstractFile): Promise<void> {
-		this.previousContent = this.currentContent;
-		console.log(`${file.name} Changed!`);
-
-		this.currentContent = await this.read(file);
-		this.elements = this.getJSON(this.currentContent).elements;
-		const pElement: ExcalidrawElement[] = this.getJSON(this.previousContent).elements;
-		if (this.elements.length > pElement.length) {
-			const newElement: ExcalidrawElement = this.elements[this.elements.length - 1];
-
-			const eLinkText = this.getExerciseLinkText(newElement);
-
-			if (eLinkText) this.base.update(eLinkText); // 假如增加了元素，且符合 EXERCISE_BOX 的才会被更新
-		}
-	}
 
 }
 

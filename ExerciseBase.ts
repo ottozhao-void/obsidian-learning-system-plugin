@@ -1,4 +1,4 @@
-import {Exercise} from "./Exercise";
+import {Exercise, ExerciseLinkText} from "./Exercise";
 import {DataArray, getAPI, Literal} from "obsidian-dataview";
 import {App, Notice, TFile} from "obsidian";
 import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
@@ -17,7 +17,6 @@ enum EXERCISE_STATUSES {
 	Drifter = "drifter"
 }
 
-type ExerciseLinkText = string;
 
 interface ExerciseBaseInfo {
 	name?: string;
@@ -59,9 +58,9 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 
 	baseFile: TFile | null;
 
-	excalidrawFiles: ExcalidrawFile[];
+	excalidrawFiles: {[eFName: string]: ExcalidrawFile};
 
-	allExercises: Exercise[] = [];
+	base: Exercise[] = [];
 
 	isExist: boolean;
 
@@ -70,43 +69,55 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		this.app = app;
 		this.type = type;
 		this.excalidraw_tag = excalidraw_tag
-		this.size = this.allExercises.length;
+		this.size = this.base.length;
 	}
 
 	async initialize(): Promise<void> {
 		console.log(this);
 
 		this.isExist = this.path !== undefined &&
-			this.app.metadataCache.getFirstLinkpathDest(this.path,this.path) !== null;
+			this.app.vault.getAbstractFileByPath(this.path) !== null;
+		await this.scan();
 
 		if (!this.isExist) {
-			console.log("Initializing.....")
+			// console.log(`${this.name} entering first branch`)
 			this.isExist = true;
-			const eLinkTextArray: ExerciseLinkText[] = await this.scan();
+			const eLinkTextArray: ExerciseLinkText[] = Object.values(this.excalidrawFiles).flatMap((ef)=>ef.getExerciseLinkText());
 
 			await this.update(eLinkTextArray)
 		}
 		else {
-			this.allExercises = this.getJSON(
+			// console.log(`${this.name} entering second branch`)
+
+			this.base = this.getJSON(
 				await this.read()
-			).exercises;
+			).exercises.map(ex => new Exercise(this.app, ex) );
+			this.size = this.base.length;
+			this.baseFile = this.app.metadataCache.getFirstLinkpathDest(this.path, this.path);
 		}
 	}
 
 	async update(ct: ExerciseLinkText[] | ExerciseLinkText) {
+
 		const eLinkTextArray: ExerciseLinkText[] = Array.isArray(ct)? ct : [ct];
 
-		this.allExercises.push(...this.createNewExercise(eLinkTextArray));
-		this.size = this.allExercises.length;
+		this.base.push(...this.createNewExercise(eLinkTextArray));
+		console.log(`length before: ${this.size}`);
+		this.size = this.base.length;
+		console.log(`length after: ${this.size}`);
 		const baseContent = await this.exercisesToBaseContent()
 
-		if (this.baseFile) this.app.vault.modify(this.baseFile, baseContent);
-		this.baseFile = await this.app.vault.create(this.path, baseContent);
+		if (this.baseFile) {
+			this.app.vault.modify(this.baseFile, baseContent);
+		}
+		else {
+			this.baseFile = await this.app.vault.create(this.path, baseContent);
+		}
 	}
 
 	async exercisesToBaseContent(): Promise<string> {
 		return this.generateJSONBlock(
-			this.allExercises
+			this.base
 				.map(ex => JSON.stringify(ex, (key, value) => {
 					if (value instanceof App) {
 						return undefined
@@ -117,44 +128,33 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		)
 	}
 
-	async scan(): Promise<ExerciseLinkText[]> {
+	async scan(): Promise<void> {
 		const dvFiles: DataArray<Record<string, Literal>> = this.dataViewAPI?.pages(this.excalidraw_tag);
 		if (!dvFiles.length) new Notice(`No Exercises for ${this.type}`);
 
 		this.excalidrawFiles = await this.getExcalidrawFiles(dvFiles);
-		const exerciseLinkTextArray: ExerciseLinkText[] = this.excalidrawFiles.flatMap((ef)=>ef.getExerciseLinkText());
-
-		return exerciseLinkTextArray;
 	}
-
-	// async someFunction() {
-	// 	let signal: boolean;
-	// 	if (signal){
-	// 		const exerciseLinkTextArray: ExerciseLinkText[] = await this.scan();
-	// 		if (exerciseLinkTextArray.length > this.size) {
-	//             update the base
-	//				
-	// 		}
-	// 	}
-	//
-	//
-	// }
 
 	async query(): Promise<void> {
 		switch (this.strategy) {
 			case QUERY_STRATEGY.NEW_EXERCISE_FIRST:
-				const newExercises = this.allExercises
-					.filter((ex) => ex.status == "new");
-				const selectedExercise= newExercises[Math.floor(Math.random()*newExercises.length)];
-				this.activeExercise = new Exercise(this.app, selectedExercise);
+
+				let exerciseIndex = -1;
+				while (exerciseIndex == -1){
+				exerciseIndex = this.base.findIndex((ex, index) => ex.status == EXERCISE_STATUSES.New && index == Math.floor(Math.random()*this.size))
+			}
+			this.activeExercise = this.base.splice(exerciseIndex, 1)[0];
 		}
 		this.activeExercise.activate();
 		this.activeExercise.open();
 	}
 
+	closeExercise(){
+		this.activeExercise.close();
+		this.update(this.activeExercise.link)
+	}
 
-
-	async getExcalidrawFiles(dvFiles:DataArray<Record<string, Literal>>): Promise<ExcalidrawFile[]> {
+	async getExcalidrawFiles(dvFiles:DataArray<Record<string, Literal>>): Promise<{[eFName: string]: ExcalidrawFile}> {
 		const excalidrawFiles = dvFiles.map(page => new ExcalidrawFile(
 				this.app,
 				this,
@@ -166,7 +166,12 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 			.array()
 		await Promise.all(excalidrawFiles.map(ef => ef.initilize()));
 
-		return excalidrawFiles;
+		let exca: {[eFName: string]: ExcalidrawFile} = {};
+		for (let ef of excalidrawFiles) {
+			exca[ef.name] = ef;
+		}
+
+		return exca;
 
 
 	}

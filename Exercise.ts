@@ -17,7 +17,7 @@ import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {ExcalidrawFile} from "./Excalidraw";
 import {ExerciseBase,EXERCISE_BASE} from "./ExerciseBase";
 
-
+export type ExerciseLinkText = string;
 
 interface ExerciseWindow {
 	startTimeStamp?: number;
@@ -36,7 +36,7 @@ interface ExerciseInfo {
 
 export class Exercise{
 	app:App;
-	link:string;
+	link: ExerciseLinkText;
 	type:string;
 	lifeline: ExerciseWindow[];
 	id:string;

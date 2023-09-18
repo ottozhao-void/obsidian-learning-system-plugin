@@ -9,10 +9,12 @@ import {
 	PluginSettingTab,
 	Setting,
 	Menu,
-	View
+	View, TAbstractFile
 } from 'obsidian';
 import {Exercise, BaseMaintainer} from 'Exercise'
 import {ExerciseBase} from "./ExerciseBase";
+import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
+
 
 // Remember to rename these classes and interfaces!
 
@@ -26,17 +28,19 @@ const DEFAULT_SETTINGS: HelloWorldPlugin = {
 
 export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
-	private mechanism = new BaseMaintainer(this.app);
-	exerciseModal = new ExerciseModal(this.app,this.mechanism.exerciseBases);
+	mechanism = new BaseMaintainer(this.app);
+	exerciseModal = new ExerciseModal(this.app,this);
+	activeBase: ExerciseBase;
+
 
 	async onload() {
 		await this.loadSettings();
-		await this.mechanism.initialize();
-
+		this.app.vault.on("modify", this.onExcalidrawFileChange, this);
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('lucide-file', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
+
 			this.exerciseModal.open();
 			new Notice('This is a notice!');
 		});
@@ -100,13 +104,42 @@ export default class MyPlugin extends Plugin {
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {
+				this.activeBase.query();
 			}
 		});
 
+		this.registerDomEvent(document, 'keydown', (ev) => {
+			if (ev.ctrlKey && ev.shiftKey && ev.key == "S") {
+				this.activeBase.closeExercise();
+			}
+		});
+		setTimeout(async () => {await this.mechanism.initialize()}, 3000);
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		this.registerInterval(window.setInterval(async () => {console.log(this.activeBase)}, 3 * 1000));
 	}
 
+	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
+		// console.log(this.mechanism);
+		console.log(`${file.name} Changed!`);
+		const fileName = file.name.split(".")[0];
+		const changedExFile: ExcalidrawFile | undefined = this.mechanism.exerciseBases["math"]
+			.excalidrawFiles[fileName] || this.mechanism.exerciseBases["DSP"]
+			.excalidrawFiles[fileName];
+
+		if (changedExFile) {
+			const previous: ExcalidrawElement[] = changedExFile.getJSON(changedExFile.currentContent).elements;
+			changedExFile.currentContent = await changedExFile.read();
+			changedExFile.elements = changedExFile.getJSON(changedExFile.currentContent).elements;
+			if (changedExFile.elements.length > previous.length) {
+				const newElement: ExcalidrawElement = changedExFile.elements[changedExFile.elements.length - 1];
+
+				const eLinkText = changedExFile.getExerciseLinkText(newElement);
+
+				if (eLinkText) changedExFile.base.update(eLinkText); // 假如增加了元素，且符合 EXERCISE_BOX 的才会被更新
+			}
+			console.log(this.mechanism.exerciseBases[changedExFile.base.type].size);
+		}
+	}
 	onunload() {
 
 	}
@@ -121,23 +154,40 @@ export default class MyPlugin extends Plugin {
 }
 
 export class ExerciseModal extends Modal {
-	exerciseBases: {[K: string]: ExerciseBase};
+	plugin: MyPlugin;
+	cv:string;
 
-	constructor(app: App, exerciseBases: {[K: string]: ExerciseBase}){
+	constructor(app: App, plugin:MyPlugin){
 		super(app);
-		this.exerciseBases = exerciseBases;
+		this.plugin = plugin;
 	}
 
 	onOpen() {
 		this.contentEl.createEl("h1",{text:"Hello World"})
 
 		new Setting(this.contentEl)
-			.addButton((button) => {
-				button
-					.setButtonText("Go to Exercise")
-					.onClick(() => {
-						this.exerciseBases["math"].query();
-						this.exerciseBases["math"].activeExercise.open();
+			.addDropdown((dp => {
+				this.cv = dp
+					.addOptions(
+						{
+							"math": "math",
+							"DSP": "DSP"
+						}
+					).getValue();
+
+				dp
+					.onChange(v => {
+						this.cv	 = v
+					})
+			}))
+
+		new Setting(this.contentEl)
+			.addButton(bt => {
+				bt
+					.setCta()
+					.setButtonText("Confirm")
+					.onClick(()=>{
+						this.plugin.activeBase = this.plugin.mechanism.exerciseBases[this.cv];
 						this.close();
 					})
 			})
