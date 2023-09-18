@@ -2,15 +2,15 @@ import {
 	App,
 	moment,
 } from 'obsidian';
-import {ExerciseBase,EXERCISE_BASE} from "./ExerciseBase";
+import {ExerciseBase, EXERCISE_BASE, EXERCISE_STATUSES} from "./ExerciseBase";
 
 export type ExerciseLinkText = string;
 
 interface ExerciseWindow {
-	startTimeStamp?: number;
-	endTimeStamp?: number;
+	startTimeStamp: number;
+	endTimeStamp: number;
 	remark?: string;
-	status?: string;
+	status: string;
 }
 
 interface ExerciseInfo {
@@ -24,10 +24,12 @@ interface ExerciseInfo {
 export class Exercise{
 	app:App;
 	link: ExerciseLinkText;
-	type:string;
 	lifeline: ExerciseWindow[];
 	id:string;
-	status: string
+	lastStatus: string
+	lastRemark: string = "";
+
+	private _stime:number;
 
 	constructor(app:App, exerciseInfo:ExerciseInfo) {
 		Object.assign(this,exerciseInfo)
@@ -36,11 +38,6 @@ export class Exercise{
 		this.id = this.extractIdFromLink();
 	}
 
-	activate(){
-		this.lifeline.push({
-			startTimeStamp: moment().valueOf()
-		})
-	}
 
 	private extractIdFromLink() {
 		const match = this.link.match(/\^\s*(\S*)/);
@@ -48,16 +45,28 @@ export class Exercise{
 	}
 
 	open() {
+		this._stime = moment().valueOf();
 		this.app.workspace.openLinkText(this.link, this.link,true);
 	}
 
 	close() {
-		let ew: ExerciseWindow = this.lifeline.pop() as ExerciseWindow;
-		ew.endTimeStamp = moment().valueOf();
-		ew.status = "laser";
-		this.status = ew.status;
-		this.lifeline.push(ew);
+		this.lifeline.push({
+			startTimeStamp: this._stime,
+			endTimeStamp: moment().valueOf(),
+			status: this.lastStatus,
+			remark: this.lastRemark
+		});
+
 	}
+
+	setStatus(st:string) {
+		this.lastStatus = st;
+	}
+
+	setRemark(remark: string) {
+		this.lastRemark = remark
+	}
+
 	getWikiLink():string{
 		return `[[${this.link}]]`
 	}

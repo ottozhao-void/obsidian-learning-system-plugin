@@ -10,7 +10,7 @@ enum QUERY_STRATEGY {
 	"NEW_EXERCISE_FIRST"
 }
 
-enum EXERCISE_STATUSES {
+export enum EXERCISE_STATUSES {
 	New = "new",
 	Laser = "laser",
 	Stumble = "stumble",
@@ -97,11 +97,16 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		}
 	}
 
-	async update(ct: ExerciseLinkText[] | ExerciseLinkText) {
+	async update(ct: ExerciseLinkText[] | ExerciseLinkText | Exercise) {
 
-		const eLinkTextArray: ExerciseLinkText[] = Array.isArray(ct)? ct : [ct];
+		if (ct instanceof Exercise){
+			this.base.push(ct);
+		}
+		else {
+			const eLinkTextArray: ExerciseLinkText[] = Array.isArray(ct)? ct : [ct];
+			this.base.push(...this.createNewExercise(eLinkTextArray));
+		}
 
-		this.base.push(...this.createNewExercise(eLinkTextArray));
 		console.log(`length before: ${this.size}`);
 		this.size = this.base.length;
 		console.log(`length after: ${this.size}`);
@@ -122,6 +127,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 					if (value instanceof App) {
 						return undefined
 					}
+					if (key.startsWith("_")) return undefined;
 					return value
 				}, 3))
 				.join(",\n")
@@ -145,14 +151,13 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 			}
 			this.activeExercise = this.base.splice(exerciseIndex, 1)[0];
 		}
-		this.activeExercise.activate();
 		this.activeExercise.open();
 	}
 
 	closeExercise(){
 		if (this.activeExercise){
 			this.activeExercise.close();
-			this.update(this.activeExercise.link)
+			this.update(this.activeExercise)
 			this.activeExercise = undefined;
 		}
 	}
