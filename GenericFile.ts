@@ -1,20 +1,22 @@
-import {App, TFile} from "obsidian";
+import {App, TAbstractFile, TFile} from "obsidian";
 
 
 export class GenericFile {
 	app: App;
-	name: string | undefined;
-	path: string | undefined;
+	name: string;
+	path: string;
 
-	constructor(app: App, name: string | undefined, path: string | undefined) {
+	constructor(app: App, name: string, path: string) {
 		this.app = app;
 		this.name = name;
 		this.path = path
 	}
 
-	async read(): Promise<string> {
-		if (this.path) {
-			const file:TFile | null = this.app.metadataCache.getFirstLinkpathDest(this.path,this.path)
+	async read(file?:TAbstractFile | null): Promise<string> {
+		const path = file? file.path : this.path
+
+		if (path) {
+			const file:TFile | null = this.app.metadataCache.getFirstLinkpathDest(path,path)
 			if (file) return await this.app.vault.read(file);
 		}
 		return "";

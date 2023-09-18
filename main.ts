@@ -11,7 +11,8 @@ import {
 	Menu,
 	View
 } from 'obsidian';
-import {Exercise, Mechanism} from 'Exercise'
+import {Exercise, BaseMaintainer} from 'Exercise'
+import {ExerciseBase} from "./ExerciseBase";
 
 // Remember to rename these classes and interfaces!
 
@@ -25,16 +26,18 @@ const DEFAULT_SETTINGS: HelloWorldPlugin = {
 
 export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
-	private mechanism = new Mechanism(this.app);
+	private mechanism = new BaseMaintainer(this.app);
+	exerciseModal = new ExerciseModal(this.app,this.mechanism.exerciseBases);
 
 	async onload() {
 		await this.loadSettings();
 		await this.mechanism.initialize();
 
+
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('lucide-file', 'Sample Plugin', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			this.mechanism.exerciseBases["math"].query();
+			this.exerciseModal.open();
 			new Notice('This is a notice!');
 		});
 		const ribbonHello = this.addRibbonIcon('dice','Greet',()=>{
@@ -52,9 +55,6 @@ export default class MyPlugin extends Plugin {
 			id: 'open-sample-modal-simple',
 			name: 'Open sample modal (simple)',
 			callback: () => {
-				const exercise = this.mechanism.getCurrentExercise();
-				if (exercise) new DemoModal(this.app,exercise).open();
-
 			}
 		});
 		// This adds a command that replaces the selection withe the current time
@@ -120,12 +120,12 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-export class DemoModal extends Modal {
-	exercise: Exercise;
+export class ExerciseModal extends Modal {
+	exerciseBases: {[K: string]: ExerciseBase};
 
-	constructor(app: App,exercise: Exercise){
+	constructor(app: App, exerciseBases: {[K: string]: ExerciseBase}){
 		super(app);
-		this.exercise = exercise;
+		this.exerciseBases = exerciseBases;
 	}
 
 	onOpen() {
@@ -136,43 +136,10 @@ export class DemoModal extends Modal {
 				button
 					.setButtonText("Go to Exercise")
 					.onClick(() => {
-						this.exercise.open()
+						this.exerciseBases["math"].query();
+						this.exerciseBases["math"].activeExercise.open();
+						this.close();
 					})
-			})
-
-		new Setting(this.contentEl)
-			.setName("Data Format")
-			.setDesc("Default Data Format")
-			.addText((tb) => {
-				tb
-					.setPlaceholder("YY:MM:DDDD")
-					.setValue("YYYY:MM:DDDD")
-					.onChange((v) => console.log(v))
-				// console.log(tb.getValue());
-			})
-
-		new Setting((this.contentEl))
-			.addButton((bt) => {
-				bt
-					.setButtonText("Submit")
-					.setTooltip("Hi!😀")
-					.setCta()
-					.onClick((me) => {
-						console.log(me);
-					})
-			})
-
-		new Setting(this.contentEl)
-			.addDropdown(db => {
-				db
-					.addOption("2", "One")
-					.addOption("2","Two")
-					.addOption("3","Three")
-					.onChange((op)=>{
-						console.log(op);
-					});
-				console.log(db.getValue());
-
 			})
 	}
 	onClose() {

@@ -1,9 +1,10 @@
 import {Exercise} from "./Exercise";
 import {DataArray, getAPI, Literal} from "obsidian-dataview";
 import {App, Notice, TFile} from "obsidian";
-import {ExcalidrawFile} from "./Excalidraw";
+import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
+import instantiate = WebAssembly.instantiate;
 
 enum QUERY_STRATEGY {
 	"NEW_EXERCISE_FIRST"
@@ -16,27 +17,26 @@ enum EXERCISE_STATUSES {
 	Drifter = "drifter"
 }
 
+type ExerciseLinkText = string;
 
-
-interface ExerciseBaseInfo_ {
-	name: string;
-	path: string | undefined;
-	size: number;
-	excalidraw_tag: string | undefined;
-	type:string;
-	strategy:QUERY_STRATEGY.NEW_EXERCISE_FIRST;
+interface ExerciseBaseInfo {
+	name?: string;
+	path: string;
+	size?: number;
+	excalidraw_tag: string;
+	type?:string;
+	strategy?:QUERY_STRATEGY.NEW_EXERCISE_FIRST;
 }
 
-type ExerciseBaseInfo = Partial<ExerciseBaseInfo_>;
 
 
 export const EXERCISE_BASE: Record<string, ExerciseBaseInfo> = {
 	"math":{
-		path: "Leaf Base - Math.md",
+		path: "Exercise Base - Math.md",
 		excalidraw_tag: "#excalidraw/math"
 	},
 	"DSP":{
-		path: "Leaf Base - DSP.md",
+		path: "Exercise Base - DSP.md",
 		excalidraw_tag:"#excalidraw/signals_and_systems"
 	}
 }
@@ -49,9 +49,9 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 
 	strategy: QUERY_STRATEGY = QUERY_STRATEGY.NEW_EXERCISE_FIRST;
 
-	type: string | undefined;
+	type: string;
 
-	excalidraw_tag: string | undefined;
+	excalidraw_tag: string;
 
 	dataViewAPI: DataviewApi = getAPI() as DataviewApi;
 
@@ -59,44 +59,32 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 
 	baseFile: TFile | null;
 
-	allExercises: Exercise[];
+	excalidrawFiles: ExcalidrawFile[];
+
+	allExercises: Exercise[] = [];
 
 	isExist: boolean;
 
-	constructor(app: App, name:string, type: string | undefined, path: string | undefined, excalidraw_tag: string | undefined) {
+	constructor(app: App, name:string, type: string, path: string, excalidraw_tag: string) {
 		super(app, name, path);
 		this.app = app;
 		this.type = type;
 		this.excalidraw_tag = excalidraw_tag
+		this.size = this.allExercises.length;
 	}
 
 	async initialize(): Promise<void> {
+		console.log(this);
 
 		this.isExist = this.path !== undefined &&
 			this.app.metadataCache.getFirstLinkpathDest(this.path,this.path) !== null;
 
 		if (!this.isExist) {
+			console.log("Initializing.....")
+			this.isExist = true;
+			const eLinkTextArray: ExerciseLinkText[] = await this.scan();
 
-			const dvFiles: DataArray<Record<string, Literal>> = this.dataViewAPI?.pages(this.excalidraw_tag);
-			if (!dvFiles.length) new Notice(`No Exercises for ${this.type}`);
-
-			// Retrieves the excalidraw files
-			const excalidrawFiles: ExcalidrawFile[] = await this.getExcalidrawFiles(dvFiles);
-			const exerciseLinkArray: string[] = excalidrawFiles.flatMap((ef)=>ef.getExercise());
-			this.allExercises = this.createNewExercise(exerciseLinkArray);
-			// console.log(this.allExercises);
-
-			// Convert obtained link[] to Exercise[] and write to corresponding files
-			const newContent:string = this.generateJSONBlock(
-				this.allExercises
-					.map(ex => JSON.stringify(ex,null,3))
-					.join(",\n")
-			)
-			//Create base file with well formated Execise Object
-			if (this.path) {
-				console.log(this.isExist);
-				await this.app.vault.create(this.path, newContent);
-			};
+			await this.update(eLinkTextArray)
 		}
 		else {
 			this.allExercises = this.getJSON(
@@ -104,6 +92,53 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 			).exercises;
 		}
 	}
+
+	async update(ct: ExerciseLinkText[] | ExerciseLinkText) {
+		const eLinkTextArray: ExerciseLinkText[] = Array.isArray(ct)? ct : [ct];
+
+		this.allExercises.push(...this.createNewExercise(eLinkTextArray));
+		this.size = this.allExercises.length;
+		const baseContent = await this.exercisesToBaseContent()
+
+		if (this.baseFile) this.app.vault.modify(this.baseFile, baseContent);
+		this.baseFile = await this.app.vault.create(this.path, baseContent);
+	}
+
+	async exercisesToBaseContent(): Promise<string> {
+		return this.generateJSONBlock(
+			this.allExercises
+				.map(ex => JSON.stringify(ex, (key, value) => {
+					if (value instanceof App) {
+						return undefined
+					}
+					return value
+				}, 3))
+				.join(",\n")
+		)
+	}
+
+	async scan(): Promise<ExerciseLinkText[]> {
+		const dvFiles: DataArray<Record<string, Literal>> = this.dataViewAPI?.pages(this.excalidraw_tag);
+		if (!dvFiles.length) new Notice(`No Exercises for ${this.type}`);
+
+		this.excalidrawFiles = await this.getExcalidrawFiles(dvFiles);
+		const exerciseLinkTextArray: ExerciseLinkText[] = this.excalidrawFiles.flatMap((ef)=>ef.getExerciseLinkText());
+
+		return exerciseLinkTextArray;
+	}
+
+	// async someFunction() {
+	// 	let signal: boolean;
+	// 	if (signal){
+	// 		const exerciseLinkTextArray: ExerciseLinkText[] = await this.scan();
+	// 		if (exerciseLinkTextArray.length > this.size) {
+	//             update the base
+	//				
+	// 		}
+	// 	}
+	//
+	//
+	// }
 
 	async query(): Promise<void> {
 		switch (this.strategy) {
@@ -115,7 +150,6 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		}
 		this.activeExercise.activate();
 		this.activeExercise.open();
-
 	}
 
 
@@ -123,6 +157,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 	async getExcalidrawFiles(dvFiles:DataArray<Record<string, Literal>>): Promise<ExcalidrawFile[]> {
 		const excalidrawFiles = dvFiles.map(page => new ExcalidrawFile(
 				this.app,
+				this,
 				{
 					name: page.file.name,
 					path: page.file.path
@@ -170,6 +205,5 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 	generateJSONBlock(jsonString:string): string {
 		return `\`\`\`json\n{\n"exercises":[\n${jsonString}]\n}\n\`\`\``;
 	}
-
 
 }

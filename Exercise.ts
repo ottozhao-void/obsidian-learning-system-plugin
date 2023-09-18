@@ -77,18 +77,7 @@ export class Exercise{
 
 }
 
-class WarningModal extends Modal {
-
-	onOpen() {
-		this.contentEl.createEl("h1",{text: "NO CURRENT EXERCISE IS RUNNING!"})
-	}
-
-	onClose() {
-		this.contentEl.empty();
-	}
-}
-
-export class Mechanism {
+export class BaseMaintainer {
 	app:App;
 	dataViewAPI: DataviewApi;
 	strategy: string = "newFirst";
@@ -100,14 +89,6 @@ export class Mechanism {
 		this.dataViewAPI = getAPI() as DataviewApi
 	}
 
-	getCurrentExercise(): Exercise | null {
-		if (!this.currentExercise){
-			new WarningModal(this.app).open();
-			return null
-		}
-		return this.currentExercise;
-	}
-
 	async initialize(){
 		Object.keys(EXERCISE_BASE).forEach((subject) => {
 			this.exerciseBases[subject] = new ExerciseBase(
@@ -117,28 +98,38 @@ export class Mechanism {
 				EXERCISE_BASE[subject].path,
 				EXERCISE_BASE[subject].excalidraw_tag
 			)
-			this.exerciseBases[subject].initialize();
 		})
+		await this.exerciseBases["math"].initialize();
+		await this.exerciseBases["DSP"].initialize();
 	}
-
-
-
-
 
 	async increaseExerciseCount(subject:string):Promise<void>{
 		return ;
 	}
 
 
+}
 
 
 
+class BaseSelectorModal extends Modal {
+	option: string;
 
 
+	onOpen() {
 
-	private isBaseExist(baseFilePath:string) {
-		return this.app.vault.getAbstractFileByPath(baseFilePath);
+		new Setting(this.contentEl)
+			.addDropdown(dc => {
+				dc
+					.addOptions({
+					"math": "math",
+					"DSP": "DSP"
+				});
+				this.option = dc.getValue();
+			})
 	}
 
-
+	onClose() {
+		this.contentEl.empty();
+	}
 }
