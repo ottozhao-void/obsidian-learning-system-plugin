@@ -54,7 +54,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 
 	dataViewAPI: DataviewApi = getAPI() as DataviewApi;
 
-	activeExercise: Exercise;
+	activeExercise: Exercise | undefined;
 
 	baseFile: TFile | null;
 
@@ -150,8 +150,11 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 	}
 
 	closeExercise(){
-		this.activeExercise.close();
-		this.update(this.activeExercise.link)
+		if (this.activeExercise){
+			this.activeExercise.close();
+			this.update(this.activeExercise.link)
+			this.activeExercise = undefined;
+		}
 	}
 
 	async getExcalidrawFiles(dvFiles:DataArray<Record<string, Literal>>): Promise<{[eFName: string]: ExcalidrawFile}> {
@@ -188,23 +191,6 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 			})
 		});
 	}
-
-	// async update(): Promise<void> {
-	// 	if (this.path) {
-	// 		const baseFile = this.app.metadataCache.getFirstLinkpathDest(this.path,this.path) as TFile;
-	// 		const exercises: ExerciseStructure[] = await this.getExercises(this.path)
-	// 		let newContent = this.generateJSONBlock(
-	// 			exercises.filter(ex => ex.id !== this.currentExercise.id)
-	// 				.map(ex=>JSON.stringify(ex,null,2))
-	// 				.join(",\n") + `,\n${JSON.stringify(this.currentExercise,null,2)}`
-	// 		)
-	// 		// Convert obtained link[] to Exercise[] and write to corresponding files
-	// 		await this.app.vault.modify(
-	// 			baseFile,
-	// 			newContent
-	// 		)
-	// 	}
-	// }
 
 
 	generateJSONBlock(jsonString:string): string {

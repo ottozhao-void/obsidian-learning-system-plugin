@@ -1,20 +1,7 @@
 import {
 	App,
-	Editor,
-	MarkdownView,
-	Modal,
 	moment,
-	Notice,
-	Workspace,
-	Setting,
-	Menu,
-	View,
-	TAbstractFile, TFile,
-	MetadataCache
 } from 'obsidian';
-import {getAPI,DataArray,Literal} from 'obsidian-dataview';
-import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
-import {ExcalidrawFile} from "./Excalidraw";
 import {ExerciseBase,EXERCISE_BASE} from "./ExerciseBase";
 
 export type ExerciseLinkText = string;
@@ -79,14 +66,10 @@ export class Exercise{
 
 export class BaseMaintainer {
 	app:App;
-	dataViewAPI: DataviewApi;
-	strategy: string = "newFirst";
-	currentExercise: Exercise;
 	exerciseBases: {[K: string]: ExerciseBase} = {};
 
 	constructor(app:App) {
 		this.app = app;
-		this.dataViewAPI = getAPI() as DataviewApi
 	}
 
 	async initialize(){
@@ -103,33 +86,5 @@ export class BaseMaintainer {
 		await this.exerciseBases["DSP"].initialize();
 	}
 
-	async increaseExerciseCount(subject:string):Promise<void>{
-		return ;
-	}
 
-
-}
-
-
-
-class BaseSelectorModal extends Modal {
-	option: string;
-
-
-	onOpen() {
-
-		new Setting(this.contentEl)
-			.addDropdown(dc => {
-				dc
-					.addOptions({
-					"math": "math",
-					"DSP": "DSP"
-				});
-				this.option = dc.getValue();
-			})
-	}
-
-	onClose() {
-		this.contentEl.empty();
-	}
 }

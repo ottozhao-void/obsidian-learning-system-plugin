@@ -104,13 +104,18 @@ export default class MyPlugin extends Plugin {
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {
-				this.activeBase.query();
+				if(!this.activeBase) new Notice("No Base is selected!")
+				else this.activeBase.query();
 			}
 		});
 
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "S") {
-				this.activeBase.closeExercise();
+				if(!this.activeBase?.activeExercise) new Notice("Currently, No Exercise is active!")
+				else {
+					this.activeBase.closeExercise();
+					new Notice("Successfully closed the active exercise")
+				}
 			}
 		});
 		setTimeout(async () => {await this.mechanism.initialize()}, 3000);
