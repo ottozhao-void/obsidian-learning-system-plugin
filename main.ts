@@ -1,6 +1,7 @@
 import {
 	App,
 	Editor,
+	EventRef,
 	MarkdownView,
 	Modal,
 	moment,
@@ -14,6 +15,8 @@ import {
 import {Exercise, BaseMaintainer} from 'Exercise'
 import {ExerciseBase} from "./ExerciseBase";
 import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
+import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
+import {getAPI} from "obsidian-dataview";
 
 
 // Remember to rename these classes and interfaces!
@@ -29,14 +32,25 @@ const DEFAULT_SETTINGS: HelloWorldPlugin = {
 export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
 	mechanism = new BaseMaintainer(this.app);
-	exerciseModal = new ExerciseModal(this.app,this);
+	baseModal = new BaseModal(this.app,this);
 	activeBase: ExerciseBase;
+	onExFileChangeRef: EventRef;
+
 
 
 	async onload() {
 		await this.loadSettings();
-		this.app.vault.on("modify", this.onExcalidrawFileChange, this);
+		this.onExFileChangeRef =  this.app.vault.on("modify", this.onExcalidrawFileChange, this);
 
+
+		this.addCommand({
+			id: "change-allExercises",
+			name: "Change to another exercise allExercises",
+			callback: () => {
+				new BaseModal(this.app,this).open();
+				this.mechanism.initialize()
+			}
+		})
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -44,7 +58,7 @@ export default class MyPlugin extends Plugin {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {
 				if(!this.activeBase) {
 					new Notice("No Base is selected!")
-					this.exerciseModal.open();
+					this.baseModal.open();
 				}
 				else {
 					if (this.activeBase.activeExercise) {
@@ -64,6 +78,7 @@ export default class MyPlugin extends Plugin {
 				else {
 					new AssessModal(this.app,this).open()
 					new Notice("Successfully closed the active exercise")
+
 				}
 			}
 		});
@@ -75,27 +90,14 @@ export default class MyPlugin extends Plugin {
 	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
 		// console.log(this.mechanism);
 		console.log(`${file.name} Changed!`);
-		const fileName = file.name.split(".")[0];
+		const fileName = file.name.split(".").slice(0,file.name.split(".").length-1).join(".");
 		const changedExFile: ExcalidrawFile | undefined = this.mechanism.exerciseBases["math"]
 			.excalidrawFiles[fileName] || this.mechanism.exerciseBases["DSP"]
 			.excalidrawFiles[fileName];
-
-		if (changedExFile) {
-			const previous: ExcalidrawElement[] = changedExFile.getJSON(changedExFile.currentContent).elements;
-			changedExFile.currentContent = await changedExFile.read();
-			changedExFile.elements = changedExFile.getJSON(changedExFile.currentContent).elements;
-			if (changedExFile.elements.length > previous.length) {
-				const newElement: ExcalidrawElement = changedExFile.elements[changedExFile.elements.length - 1];
-
-				const eLinkText = changedExFile.getExerciseLinkText(newElement);
-
-				if (eLinkText) changedExFile.base.update(eLinkText); // 假如增加了元素，且符合 EXERCISE_BOX 的才会被更新
-			}
-			console.log(this.mechanism.exerciseBases[changedExFile.base.type].size);
-		}
+		if (changedExFile) changedExFile.checkAndUpdateForNewExercise();
 	}
 	onunload() {
-
+		this.app.vault.offref(this.onExFileChangeRef);
 	}
 
 	async loadSettings() {
@@ -167,7 +169,7 @@ export class AssessModal extends Modal {
 		this.contentEl.empty();
 	}
 }
-export class ExerciseModal extends Modal {
+export class BaseModal extends Modal {
 	plugin: MyPlugin;
 	cv:string;
 

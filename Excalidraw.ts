@@ -1,6 +1,7 @@
-import {App, EventRef, TAbstractFile, TFile} from "obsidian";
+import {App, EventRef, Notice, TAbstractFile, TFile} from "obsidian";
 import {GenericFile} from "./GenericFile";
 import {ExerciseBase} from "./ExerciseBase";
+import {Exercise, ExerciseLinkText} from "./Exercise";
 
 export interface ExcalidrawElement {
 	strokeColor:string;
@@ -27,7 +28,7 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 	elements: ExcalidrawElement[];
 	name: string;
 	path: string;
-	// modifyRef: EventRef
+	exerciseLinkText: Set<ExerciseLinkText>;
 
 	constructor(app:App, base: ExerciseBase, excalidrawFileInfo: ExcalidrawFileInfo) {
 		super(app, excalidrawFileInfo.name, excalidrawFileInfo.path)
@@ -62,6 +63,45 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 
 	}
 
+	async checkAndUpdateForNewExercise(){
+		this.currentContent = await this.read();
+		this.elements = this.getJSON(this.currentContent).elements;
+		const exes = this.getExerciseLinkText();
+
+		const newLTArray = this.filterForNewExercise(exes);
+		const deletedLTArray = this.filterForDeletedExercise(exes);
+		this.base.update("delete", deletedLTArray);
+		this.base.update("create",newLTArray);
+		this.exerciseLinkText = new Set(exes);
+
+		//
+		// if (exes.length > this.exerciseLinkText.size) {
+		// 	// new Notice("Add Action Detected!");
+		// 	// new Notice(`Previous exercise array length is ${this.exerciseLinkText.size}\n
+		// 	// Current length is ${exes.length}`);
+		// 	const newLTArray = this.filterForNewExercise(exes);
+		// 	this.allExercises.update("create",newLTArray);
+		// 	this.exerciseLinkText = new Set(exes);
+		// }
+		// else if (exes.length < this.exerciseLinkText.size) {
+		// 	// new Notice("Delete Action Detected!");
+		// 	// new Notice(`Previous exercise array length is ${this.exerciseLinkText.size}\n
+		// 	// Current length is ${exes.length}`);
+		// 	const deletedLTArray = this.filterForDeletedExercise(exes);
+		// 	// console.log(deletedLTArray);
+		// 	this.allExercises.update("delete", deletedLTArray);
+		// 	this.exerciseLinkText = new Set(exes);
+		// }
+	}
+
+	filterForNewExercise(exes: ExerciseLinkText[]): ExerciseLinkText[] {
+		return exes.filter(ex => !this.exerciseLinkText.has(ex));
+	}
+	filterForDeletedExercise(exes: ExerciseLinkText[]): ExerciseLinkText[] {
+		let exeSet = new Set(exes);
+		let exerciseLinktTextArray = Array.from(this.exerciseLinkText);
+		return exerciseLinktTextArray.filter(ex => !exeSet.has(ex));
+	}
 
 
 	// private async onFileChange(file:TAbstractFile): Promise<void> {
@@ -76,7 +116,7 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 	//
 	// 		const eLinkText = this.getExerciseLinkText(newElement);
 	//
-	// 		if (eLinkText) this.base.update(eLinkText); // 假如增加了元素，且符合 EXERCISE_BOX 的才会被更新
+	// 		if (eLinkText) this.allExercises.checkAndUpdateForNewExercise(eLinkText); // 假如增加了元素，且符合 EXERCISE_BOX 的才会被更新
 	// 	}
 	// }
 

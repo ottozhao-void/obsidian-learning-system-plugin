@@ -5,6 +5,7 @@ import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
 import instantiate = WebAssembly.instantiate;
+import it from "node:test";
 
 enum QUERY_STRATEGY {
 	"NEW_EXERCISE_FIRST"
@@ -52,6 +53,8 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 
 	excalidraw_tag: string;
 
+	activeExerciseIndex: number = -1;
+
 	dataViewAPI: DataviewApi = getAPI() as DataviewApi;
 
 	activeExercise: Exercise | undefined;
@@ -60,7 +63,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 
 	excalidrawFiles: {[eFName: string]: ExcalidrawFile};
 
-	base: Exercise[] = [];
+	allExercises: Exercise[] = [];
 
 	isExist: boolean;
 
@@ -69,7 +72,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		this.app = app;
 		this.type = type;
 		this.excalidraw_tag = excalidraw_tag
-		this.size = this.base.length;
+		this.size = this.allExercises.length;
 	}
 
 	async initialize(): Promise<void> {
@@ -82,34 +85,52 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		if (!this.isExist) {
 			// console.log(`${this.name} entering first branch`)
 			this.isExist = true;
-			const eLinkTextArray: ExerciseLinkText[] = Object.values(this.excalidrawFiles).flatMap((ef)=>ef.getExerciseLinkText());
+			const eLinkTextArray: ExerciseLinkText[] = Object.values(this.excalidrawFiles).flatMap((ef)=>{
+				const exes = ef.getExerciseLinkText();
+				ef.exerciseLinkText = new Set(exes);
+				return exes;
+			});
 
-			await this.update(eLinkTextArray)
+			await this.update("create",eLinkTextArray)
 		}
 		else {
 			// console.log(`${this.name} entering second branch`)
 
-			this.base = this.getJSON(
+			this.allExercises = this.getJSON(
 				await this.read()
-			).exercises.map(ex => new Exercise(this.app, ex) );
-			this.size = this.base.length;
+			).exercises.map(ex => new Exercise(this.app, ex));
+			this.size = this.allExercises.length;
 			this.baseFile = this.app.metadataCache.getFirstLinkpathDest(this.path, this.path);
+
+			Object.values(this.excalidrawFiles).forEach((ef)=>ef.exerciseLinkText = new Set(ef.getExerciseLinkText()));
 		}
 	}
 
-	async update(ct: ExerciseLinkText[] | ExerciseLinkText | Exercise) {
+	async update(actionType: "create" | "modify" | "delete",ct: ExerciseLinkText[] | Exercise) {
 
-		if (ct instanceof Exercise){
-			this.base.push(ct);
-		}
-		else {
-			const eLinkTextArray: ExerciseLinkText[] = Array.isArray(ct)? ct : [ct];
-			this.base.push(...this.createNewExercise(eLinkTextArray));
-		}
+		switch (actionType) {
+			case "modify":
+				if (ct instanceof Exercise){
+					this.allExercises.splice(this.activeExerciseIndex,0,ct);
+				}
+				break
+			case "create":
+				if (!(ct instanceof Exercise)) this.allExercises.push(...this.createNewExercise(ct));
+				// console.log(this.allExercises);
+				break
+			case "delete":
+				if (Array.isArray(ct)){
+					for (let elt of ct) {
+						this.allExercises.forEach((ex, index) => {
+							if (ex.link == elt) this.allExercises.splice(index,1);
+						})
+					}
+				}
+		};
 
-		console.log(`length before: ${this.size}`);
-		this.size = this.base.length;
-		console.log(`length after: ${this.size}`);
+		// console.log(`length before: ${this.size}`);
+		this.size = this.allExercises.length;
+		// console.log(`length after: ${this.size}`);
 		const baseContent = await this.exercisesToBaseContent()
 
 		if (this.baseFile) {
@@ -122,11 +143,13 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 
 	async exercisesToBaseContent(): Promise<string> {
 		return this.generateJSONBlock(
-			this.base
+			this.allExercises
 				.map(ex => JSON.stringify(ex, (key, value) => {
 					if (value instanceof App) {
-						return undefined
+						return undefined;
 					}
+					else if (value instanceof ExerciseBase)
+						return undefined;
 					if (key.startsWith("_")) return undefined;
 					return value
 				}, 3))
@@ -142,22 +165,31 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 	}
 
 	async query(): Promise<void> {
+		let iteratons = 0;
 		switch (this.strategy) {
 			case QUERY_STRATEGY.NEW_EXERCISE_FIRST:
-
-				let exerciseIndex = -1;
-				while (exerciseIndex == -1){
-				exerciseIndex = this.base.findIndex((ex, index) => ex.status == EXERCISE_STATUSES.New && index == Math.floor(Math.random()*this.size))
+				while (this.activeExerciseIndex == -1){
+					iteratons++
+					this.activeExerciseIndex = this.allExercises.findIndex((ex, index) => ex.lastStatus == EXERCISE_STATUSES.New && index == Math.floor(Math.random()*this.size))
+					if (iteratons > this.size) {
+						new Notice("No more new Exercises!");
+						return;
+					}
 			}
-			this.activeExercise = this.base.splice(exerciseIndex, 1)[0];
+			this.activeExercise = this.allExercises.splice(this.activeExerciseIndex, 1)[0];
 		}
 		this.activeExercise.open();
 	}
 
 	closeExercise(){
 		if (this.activeExercise){
+
 			this.activeExercise.close();
-			this.update(this.activeExercise)
+			this.update("modify",this.activeExercise)
+			this.activeExerciseIndex = -1;
+
+			new Notice(`Start Time: ${this.activeExercise.getLastStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getLastEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getLastDuration()}`,10000);
+
 			this.activeExercise = undefined;
 		}
 	}
@@ -192,7 +224,8 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 				type: this.type,
 				lifeline:[],
 				id:"",
-				status:EXERCISE_STATUSES["New"]
+				lastStatus:EXERCISE_STATUSES["New"],
+				base: this
 			})
 		});
 	}
