@@ -6,6 +6,7 @@ import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
 import instantiate = WebAssembly.instantiate;
 import it from "node:test";
+import * as util from "util";
 
 enum QUERY_STRATEGY {
 	"NEW_EXERCISE_FIRST"
@@ -13,10 +14,23 @@ enum QUERY_STRATEGY {
 
 export enum EXERCISE_STATUSES {
 	New = "new",
+	Inspiring = "inspiring",
 	Laser = "laser",
 	Stumble = "stumble",
 	Drifter = "drifter"
 }
+
+export enum EXERCISE_STATUSES_SWAPPED {
+	new = "New",
+	inspiring = "Inspiring",
+	laser = "Laser",
+	stumble = "Stumble",
+	drifter = "Drifter"
+}
+
+// type SwapKeyValue<T extends Record<string, string>> = {
+// 	[K in keyof T as T[K]]: K
+// }
 
 
 interface ExerciseBaseInfo {
@@ -66,6 +80,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 	allExercises: Exercise[] = [];
 
 	isExist: boolean;
+
 
 	constructor(app: App, name:string, type: string, path: string, excalidraw_tag: string) {
 		super(app, name, path);
@@ -165,20 +180,22 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 	}
 
 	async query(): Promise<void> {
-		let iteratons = 0;
-		switch (this.strategy) {
-			case QUERY_STRATEGY.NEW_EXERCISE_FIRST:
-				while (this.activeExerciseIndex == -1){
-					iteratons++
-					this.activeExerciseIndex = this.allExercises.findIndex((ex, index) => ex.lastStatus == EXERCISE_STATUSES.New && index == Math.floor(Math.random()*this.size))
-					if (iteratons > this.size) {
-						new Notice("No more new Exercises!");
-						return;
-					}
+		console.log(this);
+		if (this.strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST) {
+			const newExercisesIndexes = this.allExercises
+				.map((ex,index) => ex.lastStatus == EXERCISE_STATUSES.New? index : -1)
+				.filter((index) => index !== -1);
+
+			// If no new exercises are found
+			if (newExercisesIndexes.length === 0) {
+				new Notice("No more new Exercises!");
+				return;
 			}
-			this.activeExercise = this.allExercises.splice(this.activeExerciseIndex, 1)[0];
+
+			const randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
+			this.activeExercise = this.allExercises.splice(randomExerciseIndex,1)[0];
+			this.activeExercise.open();
 		}
-		this.activeExercise.open();
 	}
 
 	closeExercise(){

@@ -12,11 +12,12 @@ import {
 	Menu,
 	View, TAbstractFile
 } from 'obsidian';
-import {Exercise, BaseMaintainer} from 'Exercise'
-import {ExerciseBase} from "./ExerciseBase";
+import {Exercise} from 'Exercise'
+import {ExerciseBase, EXERCISE_STATUSES,EXERCISE_STATUSES_SWAPPED} from "./ExerciseBase";
 import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
+import {Planner} from "./Planner";
 
 
 // Remember to rename these classes and interfaces!
@@ -31,7 +32,7 @@ const DEFAULT_SETTINGS: HelloWorldPlugin = {
 
 export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
-	mechanism = new BaseMaintainer(this.app);
+	planner = new Planner(this.app);
 	baseModal = new BaseModal(this.app,this);
 	activeBase: ExerciseBase;
 	onExFileChangeRef: EventRef;
@@ -48,7 +49,7 @@ export default class MyPlugin extends Plugin {
 			name: "Change to another exercise allExercises",
 			callback: () => {
 				new BaseModal(this.app,this).open();
-				this.mechanism.initialize()
+				this.planner.initialize();
 			}
 		})
 
@@ -82,17 +83,17 @@ export default class MyPlugin extends Plugin {
 				}
 			}
 		});
-		setTimeout(async () => {await this.mechanism.initialize()}, 1000);
+		setTimeout(async () => {await this.planner.initialize()}, 1000);
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		// this.registerInterval(window.setInterval(async () => {console.log(this.activeBase)}, 3 * 1000));
 	}
 
 	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
-		// console.log(this.mechanism);
+		// console.log(this.planner);
 		console.log(`${file.name} Changed!`);
 		const fileName = file.name.split(".").slice(0,file.name.split(".").length-1).join(".");
-		const changedExFile: ExcalidrawFile | undefined = this.mechanism.exerciseBases["math"]
-			.excalidrawFiles[fileName] || this.mechanism.exerciseBases["DSP"]
+		const changedExFile: ExcalidrawFile | undefined = this.planner.exerciseBases["math"]
+			.excalidrawFiles[fileName] || this.planner.exerciseBases["DSP"]
 			.excalidrawFiles[fileName];
 		if (changedExFile) changedExFile.checkAndUpdateForNewExercise();
 	}
@@ -125,11 +126,7 @@ export class AssessModal extends Modal {
 
 		new Setting(this.contentEl)
 			.addDropdown(dp => {
-				dp.addOptions({
-					"laser": "Laser",
-					"stumble": "Stumble",
-					"drifter":"Drifter",
-				});
+				dp.addOptions(EXERCISE_STATUSES_SWAPPED);
 				this.option = dp.getValue();
 				dp
 					.onChange(v => {
@@ -203,7 +200,7 @@ export class BaseModal extends Modal {
 					.setCta()
 					.setButtonText("Confirm")
 					.onClick(()=>{
-						this.plugin.activeBase = this.plugin.mechanism.exerciseBases[this.cv];
+						this.plugin.activeBase = this.plugin.planner.exerciseBases[this.cv];
 						this.close();
 					})
 			})
