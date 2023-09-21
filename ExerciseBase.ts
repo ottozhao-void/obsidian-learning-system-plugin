@@ -43,17 +43,22 @@ interface ExerciseBaseInfo {
 }
 
 
-
 export const EXERCISE_BASE: Record<string, ExerciseBaseInfo> = {
-	"math":{
+	"Math":{
 		path: "Exercise Base - Math.md",
 		excalidraw_tag: "#excalidraw/math"
 	},
 	"DSP":{
 		path: "Exercise Base - DSP.md",
 		excalidraw_tag:"#excalidraw/signals_and_systems"
+	},
+	"Politics": {
+		path: "Exercise Base - Politics.md",
+		excalidraw_tag:"#excalidraw/政治"
 	}
 }
+export const EXERCISE_SUBJECT: string[] = Object.keys(EXERCISE_BASE);
+
 
 
 export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
@@ -180,7 +185,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 	}
 
 	async query(): Promise<void> {
-		console.log(this);
+		// console.log(this);
 		if (this.strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST) {
 			const newExercisesIndexes = this.allExercises
 				.map((ex,index) => ex.lastStatus == EXERCISE_STATUSES.New? index : -1)
@@ -211,6 +216,17 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		}
 	}
 
+	earlyExerciseCLose(){
+		if (this.activeExercise){
+
+			this.update("modify",this.activeExercise)
+			this.activeExerciseIndex = -1;
+			this.activeExercise = undefined;
+
+			new Notice("Early closed exercise");
+		}
+	}
+
 	async getExcalidrawFiles(dvFiles:DataArray<Record<string, Literal>>): Promise<{[eFName: string]: ExcalidrawFile}> {
 		const excalidrawFiles = dvFiles.map(page => new ExcalidrawFile(
 				this.app,
@@ -229,9 +245,8 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		}
 
 		return exca;
-
-
 	}
+
 
 	createNewExercise(exercisesArray: string[]): Exercise[] {
 		return exercisesArray.map(link => {

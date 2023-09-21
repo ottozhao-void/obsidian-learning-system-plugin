@@ -10,10 +10,10 @@ import {
 	PluginSettingTab,
 	Setting,
 	Menu,
-	View, TAbstractFile
+	View, TAbstractFile, TFile
 } from 'obsidian';
 import {Exercise} from 'Exercise'
-import {ExerciseBase, EXERCISE_STATUSES,EXERCISE_STATUSES_SWAPPED} from "./ExerciseBase";
+import {ExerciseBase, EXERCISE_STATUSES, EXERCISE_STATUSES_SWAPPED, EXERCISE_SUBJECT} from "./ExerciseBase";
 import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
@@ -34,7 +34,7 @@ export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
 	planner = new Planner(this.app);
 	baseModal = new BaseModal(this.app,this);
-	activeBase: ExerciseBase;
+	activeBase: ExerciseBase | undefined;
 	onExFileChangeRef: EventRef;
 
 
@@ -42,6 +42,7 @@ export default class MyPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.onExFileChangeRef =  this.app.vault.on("modify", this.onExcalidrawFileChange, this);
+		this.initStatFile();
 
 
 		this.addCommand({
@@ -50,6 +51,14 @@ export default class MyPlugin extends Plugin {
 			callback: () => {
 				new BaseModal(this.app,this).open();
 				this.planner.initialize();
+			}
+		})
+
+		this.addCommand({
+			id: "close-all-base",
+			name: "Disconnect with the active base",
+			callback: () => {
+				this.activeBase = undefined;
 			}
 		})
 
@@ -89,14 +98,15 @@ export default class MyPlugin extends Plugin {
 	}
 
 	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
-		// console.log(this.planner);
 		console.log(`${file.name} Changed!`);
-		const fileName = file.name.split(".").slice(0,file.name.split(".").length-1).join(".");
-		const changedExFile: ExcalidrawFile | undefined = this.planner.exerciseBases["math"]
+		const tFile = this.app.metadataCache.getFirstLinkpathDest(file.path,file.path);
+		const fileName = tFile?.basename ? tFile?.basename : "";
+		const excalidrawFile: ExcalidrawFile | undefined = this.planner.exerciseBases["math"]
 			.excalidrawFiles[fileName] || this.planner.exerciseBases["DSP"]
 			.excalidrawFiles[fileName];
-		if (changedExFile) changedExFile.checkAndUpdateForNewExercise();
+		if (excalidrawFile) excalidrawFile.checkAndUpdateForNewExercise()
 	}
+
 	onunload() {
 		this.app.vault.offref(this.onExFileChangeRef);
 	}
@@ -107,6 +117,15 @@ export default class MyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	//TODO Don't forget to implement this method
+	// - 如果当日的StatFile 不存在，那么创建一个新的StatFile, 并将其初始值写入一个新的Obsidian文件
+	// - 如果当日的StatFile 存在， 直接读取数据，并创建一个runtime StatFile Object, 用于数据的动态更新
+	// - 再创建一个DataProcessor
+	// - 将创建的 DataProcessor 挂在 this 上面
+	private initStatFile() {
+
 	}
 }
 export class AssessModal extends Modal {
@@ -122,7 +141,6 @@ export class AssessModal extends Modal {
 	onOpen() {
 
 		this.contentEl.createEl("h1",{text:"Hello World"})
-
 
 		new Setting(this.contentEl)
 			.addDropdown(dp => {
@@ -151,12 +169,22 @@ export class AssessModal extends Modal {
 					.setButtonText("Confirm")
 					.setCta()
 					.onClick(()=>{
-						if (this.plugin.activeBase.activeExercise){
+						if (this.plugin.activeBase?.activeExercise){
 							this.plugin.activeBase.activeExercise.setStatus(this.option);
 							this.plugin.activeBase.activeExercise.setRemark(this.remark);
 							this.plugin.activeBase.closeExercise();
 							this.close();
 						}
+					})
+			})
+		new Setting(this.contentEl)
+			.addButton(bt => {
+				bt
+					.setButtonText("Quit Exercise Without Saving")
+					.setCta()
+					.onClick(() => {
+						this.plugin.activeBase?.earlyExerciseCLose();
+						this.close();
 					})
 			})
 
@@ -181,12 +209,11 @@ export class BaseModal extends Modal {
 		new Setting(this.contentEl)
 			.addDropdown((dp => {
 				this.cv = dp
-					.addOptions(
-						{
-							"math": "math",
-							"DSP": "DSP"
-						}
-					).getValue();
+					.addOptions(EXERCISE_SUBJECT.reduce<Record<string, string>>(
+						(acc,item)=>{
+						acc[item] = item;
+						return acc;
+					}, {})).getValue();
 
 				dp
 					.onChange(v => {
