@@ -22,7 +22,7 @@ export class Planner {
 			)
 		})
 
-		await Promise.all(EXERCISE_SUBJECT.map(sub => this.exerciseBases[sub].initialize()));
+		await Promise.all(Object.values(EXERCISE_SUBJECT).map(sub => this.exerciseBases[sub].initialize()));
 
 	}
 

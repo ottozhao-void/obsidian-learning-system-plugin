@@ -101,8 +101,9 @@ export default class MyPlugin extends Plugin {
 		console.log(`${file.name} Changed!`);
 		const tFile = this.app.metadataCache.getFirstLinkpathDest(file.path,file.path);
 		const fileName = tFile?.basename ? tFile?.basename : "";
-		const excalidrawFile: ExcalidrawFile | undefined = this.planner.exerciseBases["math"]
-			.excalidrawFiles[fileName] || this.planner.exerciseBases["DSP"]
+		const excalidrawFile: ExcalidrawFile | undefined = this.planner.exerciseBases[EXERCISE_SUBJECT.MATH]
+			.excalidrawFiles[fileName] || this.planner.exerciseBases[EXERCISE_SUBJECT.DSP]
+			.excalidrawFiles[fileName] || this.planner.exerciseBases[EXERCISE_SUBJECT.POLITICS]
 			.excalidrawFiles[fileName];
 		if (excalidrawFile) excalidrawFile.checkAndUpdateForNewExercise()
 	}
@@ -125,7 +126,6 @@ export default class MyPlugin extends Plugin {
 	// - 再创建一个DataProcessor
 	// - 将创建的 DataProcessor 挂在 this 上面
 	private initStatFile() {
-
 	}
 }
 export class AssessModal extends Modal {
@@ -209,7 +209,7 @@ export class BaseModal extends Modal {
 		new Setting(this.contentEl)
 			.addDropdown((dp => {
 				this.cv = dp
-					.addOptions(EXERCISE_SUBJECT.reduce<Record<string, string>>(
+					.addOptions(Object.values(EXERCISE_SUBJECT).reduce<Record<string, string>>(
 						(acc,item)=>{
 						acc[item] = item;
 						return acc;

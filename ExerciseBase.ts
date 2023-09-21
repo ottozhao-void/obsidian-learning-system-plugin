@@ -41,23 +41,28 @@ interface ExerciseBaseInfo {
 	type?:string;
 	strategy?:QUERY_STRATEGY.NEW_EXERCISE_FIRST;
 }
+export enum EXERCISE_SUBJECT {
+	MATH = "Math",
+	DSP = "DSP",
+	POLITICS = "Politics"
+}
 
 
 export const EXERCISE_BASE: Record<string, ExerciseBaseInfo> = {
-	"Math":{
+	[EXERCISE_SUBJECT.MATH]: {
 		path: "Exercise Base - Math.md",
 		excalidraw_tag: "#excalidraw/math"
 	},
-	"DSP":{
+	[EXERCISE_SUBJECT.DSP]: {
 		path: "Exercise Base - DSP.md",
 		excalidraw_tag:"#excalidraw/signals_and_systems"
 	},
-	"Politics": {
+	[EXERCISE_SUBJECT.POLITICS]: {
 		path: "Exercise Base - Politics.md",
 		excalidraw_tag:"#excalidraw/政治"
 	}
 }
-export const EXERCISE_SUBJECT: string[] = Object.keys(EXERCISE_BASE);
+// export const EXERCISE_SUBJECT: string[] = Object.keys(EXERCISE_BASE);
 
 
 
@@ -96,6 +101,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 	}
 
 	async initialize(): Promise<void> {
+		console.log(2);
 		console.log(this);
 
 		this.isExist = this.path !== undefined &&
