@@ -26,6 +26,10 @@ export class Planner {
 
 	}
 
+	async loadAllBases(){
+		await Promise.all(Object.values(EXERCISE_SUBJECT).map(sub => this.exerciseBases[sub].load()));
+	}
+
 
 
 }

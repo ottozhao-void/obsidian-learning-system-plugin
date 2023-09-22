@@ -18,6 +18,7 @@ import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {Planner} from "./Planner";
+import {DAILY_DF_NAME_TEMPLATE, StatFile} from "./DataProcessor";
 
 
 // Remember to rename these classes and interfaces!
@@ -36,29 +37,38 @@ export default class MyPlugin extends Plugin {
 	baseModal = new BaseModal(this.app,this);
 	activeBase: ExerciseBase | undefined;
 	onExFileChangeRef: EventRef;
+	statFile: StatFile;
 
 
 
 	async onload() {
 		await this.loadSettings();
 		this.onExFileChangeRef =  this.app.vault.on("modify", this.onExcalidrawFileChange, this);
+		setTimeout(async () => {await this.planner.initialize()}, 1000);
 		this.initStatFile();
 
-
 		this.addCommand({
-			id: "change-allExercises",
-			name: "Change to another exercise allExercises",
+			id: "switch-base",
+			name: "Switch Base",
 			callback: () => {
 				new BaseModal(this.app,this).open();
-				this.planner.initialize();
+				this.planner.loadAllBases();
 			}
 		})
 
 		this.addCommand({
-			id: "close-all-base",
-			name: "Disconnect with the active base",
+			id: "close-base",
+			name: "Close Base",
 			callback: () => {
 				this.activeBase = undefined;
+			}
+		})
+
+		this.addCommand({
+			id: "reload-all-bases",
+			name: "Reload All Bases",
+			callback: async () => {
+				this.planner.loadAllBases();
 			}
 		})
 
@@ -92,13 +102,13 @@ export default class MyPlugin extends Plugin {
 				}
 			}
 		});
-		setTimeout(async () => {await this.planner.initialize()}, 1000);
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		// this.registerInterval(window.setInterval(async () => {console.log(this.activeBase)}, 3 * 1000));
 	}
 
 	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
 		console.log(`${file.name} Changed!`);
+		new Notice(`${file.name} Changed!`, 3000);
 		const tFile = this.app.metadataCache.getFirstLinkpathDest(file.path,file.path);
 		const fileName = tFile?.basename ? tFile?.basename : "";
 		const excalidrawFile: ExcalidrawFile | undefined = this.planner.exerciseBases[EXERCISE_SUBJECT.MATH]
@@ -125,7 +135,18 @@ export default class MyPlugin extends Plugin {
 	// - 如果当日的StatFile 存在， 直接读取数据，并创建一个runtime StatFile Object, 用于数据的动态更新
 	// - 再创建一个DataProcessor
 	// - 将创建的 DataProcessor 挂在 this 上面
-	private initStatFile() {
+	private async initStatFile() {
+		const sfn = DAILY_DF_NAME_TEMPLATE();
+		const sfExists: boolean = this.app.metadataCache.getFirstLinkpathDest(sfn, sfn) !== null;
+		if (!sfExists) {
+			this.statFile = new StatFile(sfn);
+			await this.statFile.create()
+		}
+		else {
+			// Read the data from the existing file and create a new SF object
+			const dailyData =
+			this.statFile = new StatFile(sfn)
+		}
 	}
 }
 export class AssessModal extends Modal {

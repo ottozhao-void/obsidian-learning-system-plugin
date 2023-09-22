@@ -1,5 +1,12 @@
-import {TFile} from "obsidian";
+import {App, TFile} from "obsidian";
 import {ExerciseBase} from "./ExerciseBase";
+import {moment} from "obsidian";
+
+
+export const DAILY_DF_NAME_TEMPLATE = ():string => {
+	const date_string = moment().format('YYYY-MM-DD');
+	return `Daily Notes/DF${date_string}.md`
+}
 
 export interface DailyData {
 	math_exercises: number;
@@ -42,7 +49,7 @@ export class DataProcessor{
 }
 
 
-export class StatFile extends TFile implements DailyData{
+export class StatFile implements DailyData{
 	dsp_averageTime: number;
 	dsp_exerises: number;
 	math_averageTime: number;
@@ -50,10 +57,25 @@ export class StatFile extends TFile implements DailyData{
 	politics_averageTime: number;
 	politics_exercises: number;
 
-	processor: DataProcessor;
-	file: TFile;
 
-	constructor(filePath:string) {
-		super();
+	_processor: DataProcessor;
+	_file: TFile;
+	_filePath:string;
+	_sfExists: boolean;
+	_app: App;
+
+	constructor(filePath:string, dailydata?: DailyData) {
+		this._filePath = filePath;
+	}
+
+	save(){}
+
+	async create(){
+		// Create an Obsidian note to store the data
+		const dataJson = JSON.stringify(this,(key,value)=>{
+			if (key.startsWith("_")) return undefined;
+		}, 2);
+		this._file = await this._app.vault.create(this._filePath, dataJson);
+		this._sfExists = true
 	}
 }

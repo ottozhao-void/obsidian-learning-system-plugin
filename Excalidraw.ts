@@ -67,12 +67,15 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 		this.currentContent = await this.read();
 		this.elements = this.getJSON(this.currentContent).elements;
 		const exes = this.getExerciseLinkText();
+		new Notice(`Previous number of exercises in this file: ${this.exerciseLinkText.size}\n\nCurrent number of exercises in this file: ${exes.length}`, 2000);
 
 		const newLTArray = this.filterForNewExercise(exes);
 		const deletedLTArray = this.filterForDeletedExercise(exes);
-		this.base.update("delete", deletedLTArray);
-		this.base.update("create",newLTArray);
-		this.exerciseLinkText = new Set(exes);
+		if (newLTArray.length > 0 || deletedLTArray.length > 0) {
+			this.base.update("delete", deletedLTArray);
+			this.base.update("create",newLTArray);
+			this.exerciseLinkText = new Set(exes);
+		}
 
 		//
 		// if (exes.length > this.exerciseLinkText.size) {

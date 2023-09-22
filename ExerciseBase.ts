@@ -101,7 +101,6 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 	}
 
 	async initialize(): Promise<void> {
-		console.log(2);
 		console.log(this);
 
 		this.isExist = this.path !== undefined &&
@@ -120,16 +119,18 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 			await this.update("create",eLinkTextArray)
 		}
 		else {
-			// console.log(`${this.name} entering second branch`)
-
-			this.allExercises = this.getJSON(
-				await this.read()
-			).exercises.map(ex => new Exercise(this.app, ex));
-			this.size = this.allExercises.length;
-			this.baseFile = this.app.metadataCache.getFirstLinkpathDest(this.path, this.path);
-
-			Object.values(this.excalidrawFiles).forEach((ef)=>ef.exerciseLinkText = new Set(ef.getExerciseLinkText()));
+			this.load();
 		}
+	}
+
+	async load() {
+		this.allExercises = this.getJSON(
+			await this.read()
+		).exercises.map(ex => new Exercise(this.app, ex));
+		this.size = this.allExercises.length;
+		this.baseFile = this.app.metadataCache.getFirstLinkpathDest(this.path, this.path);
+
+		Object.values(this.excalidrawFiles).forEach((ef)=>ef.exerciseLinkText = new Set(ef.getExerciseLinkText()));
 	}
 
 	async update(actionType: "create" | "modify" | "delete",ct: ExerciseLinkText[] | Exercise) {
@@ -204,6 +205,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 			}
 
 			const randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
+			new Notice(`Exercise at ${randomExerciseIndex} is being pulled out.`,3000);
 			this.activeExercise = this.allExercises.splice(randomExerciseIndex,1)[0];
 			this.activeExercise.open();
 		}
