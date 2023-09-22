@@ -3,8 +3,6 @@ import {
 	moment,
 } from 'obsidian';
 import {ExerciseBase, EXERCISE_BASE, EXERCISE_STATUSES} from "./ExerciseBase";
-import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
-import {getAPI} from "obsidian-dataview";
 import {ExcalidrawFile} from "./Excalidraw";
 
 export type ExerciseLinkText = string;
@@ -70,16 +68,23 @@ export class Exercise implements ExerciseInfo{
 	getLastStartTime(): moment.Moment {
 		return moment(this.lifeline[this.lifeline.length - 1].startTimeStamp);
 	}
+
 	getLastEndTime(): moment.Moment {
 		return moment(this.lifeline[this.lifeline.length - 1].endTimeStamp);
 	}
-	getLastDuration() {
+
+	getLastDurationString() {
 		const dur = moment.duration(this.getLastEndTime().diff(this.getLastStartTime()))
 		const hours = Math.floor(dur.asHours());
 		const minutes = dur.minutes();
 		const seconds = dur.seconds();
 
 		return `\n\t- ${hours} hours\n\t- ${minutes} mins\n\t- ${seconds} seconds`;
+	}
+
+	getLastDurationInSecond(){
+		const dur = moment.duration(this.getLastEndTime().diff(this.getLastStartTime()))
+		return dur.seconds()
 	}
 
 	setStatus(st:string) {

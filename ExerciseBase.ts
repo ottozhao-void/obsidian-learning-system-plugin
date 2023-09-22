@@ -7,6 +7,7 @@ import {GenericFile} from "./GenericFile";
 import instantiate = WebAssembly.instantiate;
 import it from "node:test";
 import * as util from "util";
+import {DataProcessor} from "./DataProcessor";
 
 enum QUERY_STRATEGY {
 	"NEW_EXERCISE_FIRST"
@@ -91,6 +92,8 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 
 	isExist: boolean;
 
+	dataProcessor: DataProcessor;
+
 
 	constructor(app: App, name:string, type: string, path: string, excalidraw_tag: string) {
 		super(app, name, path);
@@ -102,6 +105,7 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 
 	async initialize(): Promise<void> {
 		console.log(this);
+		// console.log(await this.dataViewAPI.luxon);
 
 		this.isExist = this.path !== undefined &&
 			this.app.vault.getAbstractFileByPath(this.path) !== null;
@@ -215,10 +219,11 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		if (this.activeExercise){
 
 			this.activeExercise.close();
+			this.dataProcessor.calculateAverageTimePerExercise(this.activeExercise.getLastDurationInSecond())
 			this.update("modify",this.activeExercise)
 			this.activeExerciseIndex = -1;
 
-			new Notice(`Start Time: ${this.activeExercise.getLastStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getLastEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getLastDuration()}`,10000);
+			new Notice(`Start Time: ${this.activeExercise.getLastStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getLastEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getLastDurationString()}`,10000);
 
 			this.activeExercise = undefined;
 		}

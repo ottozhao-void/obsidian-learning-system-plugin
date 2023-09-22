@@ -63,9 +63,13 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 
 	}
 
-	async checkAndUpdateForNewExercise(){
+	async getCurrentElements() {
 		this.currentContent = await this.read();
 		this.elements = this.getJSON(this.currentContent).elements;
+	}
+
+	async checkAndUpdateForNewExercise(){
+		this.getCurrentElements();
 		const exes = this.getExerciseLinkText();
 		new Notice(`Previous number of exercises in this file: ${this.exerciseLinkText.size}\n\nCurrent number of exercises in this file: ${exes.length}`, 2000);
 
@@ -76,25 +80,6 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 			this.base.update("create",newLTArray);
 			this.exerciseLinkText = new Set(exes);
 		}
-
-		//
-		// if (exes.length > this.exerciseLinkText.size) {
-		// 	// new Notice("Add Action Detected!");
-		// 	// new Notice(`Previous exercise array length is ${this.exerciseLinkText.size}\n
-		// 	// Current length is ${exes.length}`);
-		// 	const newLTArray = this.filterForNewExercise(exes);
-		// 	this.allExercises.update("create",newLTArray);
-		// 	this.exerciseLinkText = new Set(exes);
-		// }
-		// else if (exes.length < this.exerciseLinkText.size) {
-		// 	// new Notice("Delete Action Detected!");
-		// 	// new Notice(`Previous exercise array length is ${this.exerciseLinkText.size}\n
-		// 	// Current length is ${exes.length}`);
-		// 	const deletedLTArray = this.filterForDeletedExercise(exes);
-		// 	// console.log(deletedLTArray);
-		// 	this.allExercises.update("delete", deletedLTArray);
-		// 	this.exerciseLinkText = new Set(exes);
-		// }
 	}
 
 	filterForNewExercise(exes: ExerciseLinkText[]): ExerciseLinkText[] {
@@ -105,24 +90,6 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawFileInfo {
 		let exerciseLinktTextArray = Array.from(this.exerciseLinkText);
 		return exerciseLinktTextArray.filter(ex => !exeSet.has(ex));
 	}
-
-
-	// private async onFileChange(file:TAbstractFile): Promise<void> {
-	// 	this.previousContent = this.currentContent;
-	// 	console.log(`${file.name} Changed!`);
-	//
-	// 	this.currentContent = await this.read(file);
-	// 	this.elements = this.getJSON(this.currentContent).elements;
-	// 	const pElement: ExcalidrawElement[] = this.getJSON(this.previousContent).elements;
-	// 	if (this.elements.length > pElement.length) {
-	// 		const newElement: ExcalidrawElement = this.elements[this.elements.length - 1];
-	//
-	// 		const eLinkText = this.getExerciseLinkText(newElement);
-	//
-	// 		if (eLinkText) this.allExercises.checkAndUpdateForNewExercise(eLinkText); // 假如增加了元素，且符合 EXERCISE_BOX 的才会被更新
-	// 	}
-	// }
-
 }
 
 

@@ -18,7 +18,7 @@ import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {Planner} from "./Planner";
-import {DAILY_DF_NAME_TEMPLATE, StatFile} from "./DataProcessor";
+import {DAILY_DF_NAME_TEMPLATE, DataProcessor, StatFile} from "./DataProcessor";
 
 
 // Remember to rename these classes and interfaces!
@@ -27,25 +27,31 @@ interface HelloWorldPlugin {
 	mySetting: string;
 }
 
-const DEFAULT_SETTINGS: HelloWorldPlugin = {
-	mySetting: 'default'
-}
-
 export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
+
 	planner = new Planner(this.app);
+
 	baseModal = new BaseModal(this.app,this);
+
 	activeBase: ExerciseBase | undefined;
+
 	onExFileChangeRef: EventRef;
+
 	statFile: StatFile;
 
+	dataProcessor: DataProcessor;
+
+	dataviewAPI: DataviewApi | undefined = getAPI(this.app);
 
 
 	async onload() {
-		await this.loadSettings();
+		// await this.loadSettings();
 		this.onExFileChangeRef =  this.app.vault.on("modify", this.onExcalidrawFileChange, this);
 		setTimeout(async () => {await this.planner.initialize()}, 1000);
-		this.initStatFile();
+		setTimeout(async () => {this.initStatFile()}, 2000);
+
+
 
 		this.addCommand({
 			id: "switch-base",
@@ -106,6 +112,22 @@ export default class MyPlugin extends Plugin {
 		// this.registerInterval(window.setInterval(async () => {console.log(this.activeBase)}, 3 * 1000));
 	}
 
+	private async initStatFile() {
+		const sfn = DAILY_DF_NAME_TEMPLATE();
+		const sfExists: boolean = this.app.metadataCache.getFirstLinkpathDest(sfn, sfn) !== null;
+		if (!sfExists) {
+			this.statFile = new StatFile(this.app, sfn);
+			await this.statFile.create()
+		}
+		else {
+			// Read the data from the existing file and create a new SF object
+			const dailyData = StatFile.parseFrontmatter(await this.dataviewAPI?.io.load(sfn) as string);
+			this.statFile = new StatFile(this.app,sfn,dailyData);
+		}
+		Object.values(this.planner.exerciseBases).forEach(eb => eb.dataProcessor = new DataProcessor(this.statFile,eb))
+
+	}
+
 	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
 		console.log(`${file.name} Changed!`);
 		new Notice(`${file.name} Changed!`, 3000);
@@ -115,6 +137,7 @@ export default class MyPlugin extends Plugin {
 			.excalidrawFiles[fileName] || this.planner.exerciseBases[EXERCISE_SUBJECT.DSP]
 			.excalidrawFiles[fileName] || this.planner.exerciseBases[EXERCISE_SUBJECT.POLITICS]
 			.excalidrawFiles[fileName];
+
 		if (excalidrawFile) excalidrawFile.checkAndUpdateForNewExercise()
 	}
 
@@ -122,32 +145,14 @@ export default class MyPlugin extends Plugin {
 		this.app.vault.offref(this.onExFileChangeRef);
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
+	// async loadSettings() {
+	// 	this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	// }
+	//
+	// async saveSettings() {
+	// 	await this.saveData(this.settings);
+	// }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-
-	//TODO Don't forget to implement this method
-	// - 如果当日的StatFile 不存在，那么创建一个新的StatFile, 并将其初始值写入一个新的Obsidian文件
-	// - 如果当日的StatFile 存在， 直接读取数据，并创建一个runtime StatFile Object, 用于数据的动态更新
-	// - 再创建一个DataProcessor
-	// - 将创建的 DataProcessor 挂在 this 上面
-	private async initStatFile() {
-		const sfn = DAILY_DF_NAME_TEMPLATE();
-		const sfExists: boolean = this.app.metadataCache.getFirstLinkpathDest(sfn, sfn) !== null;
-		if (!sfExists) {
-			this.statFile = new StatFile(sfn);
-			await this.statFile.create()
-		}
-		else {
-			// Read the data from the existing file and create a new SF object
-			const dailyData =
-			this.statFile = new StatFile(sfn)
-		}
-	}
 }
 export class AssessModal extends Modal {
 	option: string;
@@ -161,7 +166,7 @@ export class AssessModal extends Modal {
 
 	onOpen() {
 
-		this.contentEl.createEl("h1",{text:"Hello World"})
+		this.contentEl.createEl("h1",{text:"Assess"})
 
 		new Setting(this.contentEl)
 			.addDropdown(dp => {
@@ -194,6 +199,7 @@ export class AssessModal extends Modal {
 							this.plugin.activeBase.activeExercise.setStatus(this.option);
 							this.plugin.activeBase.activeExercise.setRemark(this.remark);
 							this.plugin.activeBase.closeExercise();
+							this.plugin.activeBase.dataProcessor.increaseExerciseCount();
 							this.close();
 						}
 					})
@@ -225,7 +231,7 @@ export class BaseModal extends Modal {
 	}
 
 	onOpen() {
-		this.contentEl.createEl("h1",{text:"Hello World"})
+		this.contentEl.createEl("h1",{text:"Exercise Base Selection"})
 
 		new Setting(this.contentEl)
 			.addDropdown((dp => {
@@ -258,28 +264,28 @@ export class BaseModal extends Modal {
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
-}
+// class SampleSettingTab extends PluginSettingTab {
+// 	plugin: MyPlugin;
+//
+// 	constructor(app: App, plugin: MyPlugin) {
+// 		super(app, plugin);
+// 		this.plugin = plugin;
+// 	}
+//
+// 	display(): void {
+// 		const {containerEl} = this;
+//
+// 		containerEl.empty();
+//
+// 		new Setting(containerEl)
+// 			.setName('Setting #1')
+// 			.setDesc('It\'s a secret')
+// 			.addText(text => text
+// 				.setPlaceholder('Enter your secret')
+// 				.setValue(this.plugin.settings.mySetting)
+// 				.onChange(async (value) => {
+// 					this.plugin.settings.mySetting = value;
+// 					await this.plugin.saveSettings();
+// 				}));
+// 	}
+// }
