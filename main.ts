@@ -1,10 +1,10 @@
-import {App, EventRef, Modal, Notice, Plugin, Setting, TAbstractFile} from 'obsidian';
+import {App, EventRef, Modal, normalizePath, Notice, Plugin, Setting, TAbstractFile} from 'obsidian';
 import {
 	EXERCISE_BASE,
 	EXERCISE_STATUSES,
 	EXERCISE_STATUSES_SWAPPED,
 	EXERCISE_SUBJECT,
-	ExerciseBase
+	ExerciseBase, SBaseData
 } from "./ExerciseBase";
 import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
@@ -53,13 +53,17 @@ export default class MyPlugin extends Plugin {
 			}
 		})
 
-		// this.addCommand({
-		// 	id: "reload-all-bases",
-		// 	name: "Reload All Bases",
-		// 	callback: async () => {
-		// 		ExerciseBase.reloadAll(this.app);
-		// 	}
-		// })
+		this.addCommand({
+			id: "reload-all-bases",
+			name: "Reload All Bases",
+			callback: async () => {
+				for (let subject of Object.keys(EXERCISE_BASE)) {
+					const path = EXERCISE_BASE[subject].path;
+					let baseJSON: SBaseData = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
+					this.cpu.bases[subject] = await ExerciseBase.fromJSON(this.app,baseJSON);
+				}
+			}
+		})
 
 		// If the plugin hooks up any global DOM events (on parts of the app_ that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -92,7 +96,7 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		// this.registerInterval(window.setInterval(async () => {console.log(this.activeBase)}, 3 * 1000));
+		this.registerInterval(window.setInterval(async () => {console.log(this.cpu.bases)}, 3 * 1000));
 	}
 
 	// private async initStatFile() {
@@ -214,16 +218,16 @@ export class AssessModal extends Modal {
 					})
 			})
 
-		// new Setting(this.contentEl)
-		// 	.addButton(bt => {
-		// 		bt
-		// 			.setButtonText("Quit Exercise Without Saving")
-		// 			.setCta()
-		// 			.onClick(() => {
-		// 				this.cpu.activeBase?.earlyExerciseCLose();
-		// 				this.close();
-		// 			})
-		// 	})
+		new Setting(this.contentEl)
+			.addButton(bt => {
+				bt
+					.setButtonText("Quit Exercise Without Saving")
+					.setCta()
+					.onClick(() => {
+						this.cpu.closeUpCurrentExercise(true);
+						this.close();
+					})
+			})
 
 	}
 

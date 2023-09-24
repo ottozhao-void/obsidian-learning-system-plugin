@@ -106,7 +106,7 @@ export class Exercise implements ExerciseMetadata{
 
 	getDurationInSeconds(){
 		const dur = moment.duration(this.getEndTime().diff(this.getStartTime()))
-		return dur.seconds()
+		return dur.asSeconds();
 	}
 
 	setStatus(status:EXERCISE_STATUSES) {

@@ -185,9 +185,11 @@ export class ExerciseBase extends GenericFile implements SBaseData{
 		await this.app_.vault.adapter.write(this.path, content);
 	}
 
-	static fromJSON(app:App, obj: SBaseData):ExerciseBase {
+	static async fromJSON(app:App, obj: SBaseData): Promise<ExerciseBase> {
 		obj.exercises = obj.exercises.map(ex => new Exercise(app,ex))
-		return new ExerciseBase(app, obj);
+		let base: ExerciseBase = new ExerciseBase(app, obj);
+		await base.indexExcalidraw();
+		return base;
 	}
 
 	static parseJSONFromPath: (app:App, path:string) => Promise<SBaseData> = async (app,path) => {
@@ -219,12 +221,19 @@ export class ExerciseBase extends GenericFile implements SBaseData{
 
 		// console.log(`length before: ${this.size}`);
 		this.size = this.exercises.length;
+		this.items_completed = this.calculateItemCompleted();
 		// console.log(`length after: ${this.size}`);
 		const data = this.jsonify();
 
 
 		this.app_.vault.adapter.write(this.path,data)
 
+	}
+
+	calculateItemCompleted(): number{
+		let num = 0;
+		this.exercises.forEach((ex)=> (ex.state == EXERCISE_STATUSES.Laser ? num++ : -1))
+		return  num;
 	}
 
 	next(): Exercise | undefined {

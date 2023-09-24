@@ -57,12 +57,12 @@ export class StatFile implements DayMetadata{
 
 	static get path(){
 		const date_string = moment().format('YYYY-MM-DD');
-		return normalizePath(`Daily Notes/DF${date_string}.md`);
+		return normalizePath(`🗓️Daily notes/DF${date_string}.md`);
 	}
 
 	get path(){
 		const date_string = moment().format('YYYY-MM-DD');
-		return normalizePath(`Daily Notes/DF${date_string}.md`);
+		return normalizePath(`🗓️Daily notes/DF${date_string}.md`);
 	}
 
 	async save(){

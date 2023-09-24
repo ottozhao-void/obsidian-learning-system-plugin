@@ -18,7 +18,7 @@ import {DayFrontmatter, StatFile} from "./StatFile";
 
 export const getDailyDfNameTemplate = ():string => {
 	const date_string = moment().format('YYYY-MM-DD');
-	return `Daily Notes/DF${date_string}.md`
+	return `🗓️Daily notes/DF${date_string}.md`
 }
 
 const AVERAGE_TIME_KEY = '_averageTime';
@@ -61,8 +61,7 @@ export class DataProcessor{
 			if (exists){
 				// 如果存在的话，就先读取，再初始化
 				let baseJSON: SBaseData = parseJSON(await app.vault.adapter.read(normalizePath(path)))
-				bases[subject] = ExerciseBase.fromJSON(app,baseJSON);
-				await bases[subject].indexExcalidraw();
+				bases[subject] = await ExerciseBase.fromJSON(app,baseJSON);
 			}
 			else {
 				// 如果不存在的话，就先创造初始化，再写入
@@ -78,7 +77,7 @@ export class DataProcessor{
 		const exists = await app.vault.adapter.exists(statFilePath);
 		let statFile:StatFile;
 		if (exists) {
-			const dayFrontmatter: DayFrontmatter = parseFrontmatter(await app.vault.adapter.read(normalizePath(statFilePath)))
+			const dayFrontmatter: DayFrontmatter = parseFrontmatter(await app.vault.adapter.read(normalizePath(statFilePath))) as DayFrontmatter
 			statFile = StatFile.fromFrontmatter(app,dayFrontmatter)
 		}
 		else {
@@ -130,9 +129,12 @@ export class DataProcessor{
 	}
 
 	async closeUpCurrentExercise(early: boolean = false){
-		if (early){}
-		else {
-			if (this.activeExercise) {
+		if (this.activeExercise) {
+			if (early) {
+				this.activeExercise.start_time = 0;
+				this.activeBase?.update("modify", this.activeExercise); // Save Exercises
+			} else {
+
 				// Update the Runtime Exercise Object
 				this.activeExercise.close();
 
@@ -142,14 +144,13 @@ export class DataProcessor{
 				await this.calculateTimeSpentOnSubjectForTheDay();
 
 				// Save these updates to Obsidian Notes
-				this.activeBase?.update("modify",this.activeExercise); // Save Exercises
+				this.activeBase?.update("modify", this.activeExercise); // Save Exercises
 				console.log(this.statfile);
 				await this.statfile.save(); // Save StatFile
 
-				new Notice(`Start Time: ${this.activeExercise.getStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getDurationAsString()}`,10000);
+				new Notice(`Start Time: ${this.activeExercise.getStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getDurationAsString()}`, 10000);
 
 			}
-
 		}
 		this.activeExercise = undefined;
 
