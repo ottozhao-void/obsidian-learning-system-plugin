@@ -1,56 +1,115 @@
-import {App, stringifyYaml, TFile} from "obsidian";
-import {ExerciseBase} from "./ExerciseBase";
-import {moment} from "obsidian";
+import {App, stringifyYaml, TFile, moment, Notice, normalizePath, parseYaml, addIcon} from "obsidian";
+import {
+	EXERCISE_BASE,
+	EXERCISE_STATUSES,
+	EXERCISE_SUBJECT,
+	ExerciseBase,
+	QUERY_STRATEGY,
+	SBaseData
+} from "./ExerciseBase";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
-import {getAPI} from "obsidian-dataview";
-import * as yaml from 'js-yaml';
+import {DataArray, getAPI, Literal, parseField} from "obsidian-dataview";
+import {Exercise, ExerciseLinkText, ExerciseMetadata} from "./Exercise";
+import {ExcalidrawElement, ExcalidrawFile, ExcalidrawJSON} from "./Excalidraw";
+import {getExerciseLinkText, parseFrontmatter, parseJSON} from "./src/utility/parser";
+import {stringifyTOJSON} from "./src/utility/io";
+import {DayFrontmatter, StatFile} from "./StatFile";
 
 
-export const DAILY_DF_NAME_TEMPLATE = ():string => {
+export const getDailyDfNameTemplate = ():string => {
 	const date_string = moment().format('YYYY-MM-DD');
 	return `Daily Notes/DF${date_string}.md`
 }
 
-export interface DailyData {
-	math_exercises: number;
-	math_averageTime: number;
-	math_total_time: number;
+const AVERAGE_TIME_KEY = '_averageTime';
+const EXERCISES_KEY = '_exercises';
+const TOTAL_TIME_KEY = '_total_time';
 
-	dsp_exercises: number;
-	dsp_averageTime: number;
-	dsp_total_time:number;
 
-	politics_exercises: number;
-	politics_averageTime: number;
-	politics_total_time: number;
-}
+
 
 
 export class DataProcessor{
-
+	app_: App;
 	// The statfile should be the runtime Object of the actual Obsidian note that store the data.
 	statfile: StatFile;
 
-	exerciseBase: ExerciseBase;
-	baseType: string;
+	bases: {[K: string]: ExerciseBase} = {};
 
-	constructor(dataFile:StatFile,exerciseBase: ExerciseBase) {
-		this.statfile = dataFile;
-		this.exerciseBase = exerciseBase;
-		this.baseType = exerciseBase.type;
+	activeBase: ExerciseBase | undefined;
+
+	activeExercise: Exercise | undefined;
+
+	private constructor(app:App, bases: {[K: string]: ExerciseBase}, statFile: StatFile) {
+		this.app_ = app;
+		this.bases = bases;
+		this.statfile = statFile
+
+	}
+
+	static async init(app:App){
+		//
+		const dvAPI = getAPI();
+
+		// const statFile: StatFile = await StatFile.init(app);
+
+		// Init Exercise Base
+		let bases: {[K: string]: ExerciseBase} = {};
+		for (let subject of Object.keys(EXERCISE_BASE)) {
+			const {path, tag} = EXERCISE_BASE[subject];
+			const exists = await app.vault.adapter.exists(path);
+			if (exists){
+				// 如果存在的话，就先读取，再初始化
+				let baseJSON: SBaseData = parseJSON(await app.vault.adapter.read(normalizePath(path)))
+				bases[subject] = ExerciseBase.fromJSON(app,baseJSON);
+				await bases[subject].indexExcalidraw();
+			}
+			else {
+				// 如果不存在的话，就先创造初始化，再写入
+				bases[subject] = new ExerciseBase(app, EXERCISE_BASE[subject])
+				// console.log(bases[subject]);
+				await bases[subject].initIndex();
+				await bases[subject].save(bases[subject].jsonify());
+			}
+		}
+
+		// Init StatFile
+		const statFilePath = StatFile.path;
+		const exists = await app.vault.adapter.exists(statFilePath);
+		let statFile:StatFile;
+		if (exists) {
+			const dayFrontmatter: DayFrontmatter = parseFrontmatter(await app.vault.adapter.read(normalizePath(statFilePath)))
+			statFile = StatFile.fromFrontmatter(app,dayFrontmatter)
+		}
+		else {
+			statFile = new StatFile(app)
+			await statFile.save()
+		}
+
+		return new DataProcessor(app,bases,statFile);
+	}
+
+	getFieldValue(keySuffix:string){
+		return (this.statfile as any)[`${this.activeBase?.["subject"].toLowerCase()}${keySuffix}`]
+	}
+
+	async updateField(keySuffix:string, value: number){
+		// console.log(`Modifing ${this.baseType.toLowerCase()}${keySuffix}\n its cuurent value is ${this.getFieldValue(keySuffix)}`);
+		(this.statfile as any)[`${this.activeBase?.["subject"].toLowerCase()}${keySuffix}`] = value;
 	}
 
 	async increaseExerciseCount(){
-		(this.statfile as any)[`${this.baseType.toLowerCase()}_exercises`] ++;
-		await this.statfile.save();
+		// (this.statfile as any)[`${this.baseType.toLowerCase()}_exercises`] ++;
+		let noe: number = this.getFieldValue(EXERCISES_KEY);
+		this.updateField(EXERCISES_KEY, ++ noe);
 	}
 
 	// This function calculates the average time spent on each exercise
 	async calculateAverageTimePerExercise(seconds: number){
-		let avgTime = (this.statfile as any)[`${this.baseType.toLowerCase()}_averageTime`];
-		avgTime = (avgTime*(this.statfile as any)[`${this.baseType.toLowerCase()}_exercises`] + seconds) / ((this.statfile as any)[`${this.baseType.toLowerCase()}_exercises`]+1);
-		(this.statfile as any)[`${this.baseType.toLowerCase()}_averageTime`] = avgTime;
-		await this.statfile.save();
+		const noe: number = this.getFieldValue(EXERCISES_KEY);
+		let fv = this.getFieldValue(AVERAGE_TIME_KEY)
+		this.updateField(AVERAGE_TIME_KEY, (fv*noe+seconds)/(noe+1));
+
 		this.calculateTimeSpentOnSubjectForTheDay();
 	}
 
@@ -60,79 +119,42 @@ export class DataProcessor{
 
 	// This function calculates the time spent on a particular particular subject
 	async calculateTimeSpentOnSubjectForTheDay(){
-		(this.statfile as any)[`${this.baseType.toLowerCase()}_total_time`] =
-			(this.statfile as any)[`${this.baseType.toLowerCase()}_averageTime`] *
-			(this.statfile as any)[`${this.baseType.toLowerCase()}_exercises`]
-		await this.statfile.save();
-
+		const noe: number = this.getFieldValue(EXERCISES_KEY);
+		const avgTime: number = this.getFieldValue(AVERAGE_TIME_KEY);
+		this.updateField(TOTAL_TIME_KEY, noe*avgTime);
 	}
 
-}
-
-
-export class StatFile implements DailyData{
-	dsp_averageTime: number = 0;
-	dsp_exercises: number = 0;
-	dsp_total_time: number = 0;
-
-	math_averageTime: number = 0;
-	math_exercises: number = 0;
-	math_total_time: number = 0;
-
-	politics_averageTime: number = 0;
-	politics_exercises: number = 0;
-	politics_total_time: number = 0;
-
-
-	_processor: DataProcessor;
-	_file: TFile | null;
-	_filePath:string;
-	_sfExists: boolean;
-	_app: App;
-	_dataviewAPI: DataviewApi | undefined;
-
-	constructor(app:App, filePath:string, dailydata?: DailyData) {
-		this._app = app;
-		this._filePath = filePath;
-		this._dataviewAPI = getAPI();
-		this._file = this._app.metadataCache.getFirstLinkpathDest(this._filePath,this._filePath);
-		this._sfExists = this._file != null ;
-		Object.assign(this, dailydata);
+	async run(){
+		this.activeExercise = this.activeBase?.next()
+		this.activeExercise?.start();
 	}
 
-	async save(){
-		if (this._file) {
-			const frontmatter = StatFile.toFrontmatter(this);
-			await this._app.vault.modify(this._file,frontmatter);
-		}
-	}
+	async closeUpCurrentExercise(early: boolean = false){
+		if (early){}
+		else {
+			if (this.activeExercise) {
+				// Update the Runtime Exercise Object
+				this.activeExercise.close();
 
-	async create(){
-		this._file = await this._app.vault.create(this._filePath, StatFile.toFrontmatter(this));
-		this._sfExists = true
-	}
-	static toFrontmatter(sf: StatFile) {
-		// Creating a new object containing only the properties that don't start with "_"
-		const sanitizedObject = Object.fromEntries(
-			Object.entries(sf).filter(([key]) => !key.startsWith("_"))
-		);
+				// Update the Runtime StatFile Object
+				await this.calculateAverageTimePerExercise(this.activeExercise.getDurationInSeconds())
+				await this.increaseExerciseCount();
+				await this.calculateTimeSpentOnSubjectForTheDay();
 
-		// Converting the sanitized object to a YAML string using js-yaml
-		return `---\n${yaml.dump(sanitizedObject)}---`;
-	}
+				// Save these updates to Obsidian Notes
+				this.activeBase?.update("modify",this.activeExercise); // Save Exercises
+				console.log(this.statfile);
+				await this.statfile.save(); // Save StatFile
 
-	static parseFrontmatter(content: string): DailyData | undefined {
-		const pattern = /---\s*([\s\S]*?)\s*---/;
-		const matches = pattern.exec(content);
-		if (matches && matches[1]) {
-			try {
-				return yaml.load(matches[1]) as DailyData;
-			} catch (e) {
-				console.error('Error parsing YAML:', e);
-				return undefined;
+				new Notice(`Start Time: ${this.activeExercise.getStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getDurationAsString()}`,10000);
+
 			}
+
 		}
-		return undefined;
+		this.activeExercise = undefined;
+
 	}
 
 }
+
+

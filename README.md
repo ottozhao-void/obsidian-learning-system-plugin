@@ -2,7 +2,7 @@
 
 This is a sample plugin for Obsidian (https://obsidian.md).
 
-This project uses Typescript to provide type checking and documentation.
+This project uses Typescript to provide subject checking and documentation.
 The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
 
 **Note:** The Obsidian API is still in early alpha and is subject to change at any time!
@@ -71,7 +71,7 @@ Quick starting guide for new plugin devs:
 
 You can include funding URLs where people who use your plugin can financially support it.
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+The simple way is to set the `fundingUrl` field to your source in your `manifest.json` file:
 
 ```json
 {

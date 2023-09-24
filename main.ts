@@ -1,25 +1,16 @@
+import {App, EventRef, Modal, Notice, Plugin, Setting, TAbstractFile} from 'obsidian';
 import {
-	App,
-	Editor,
-	EventRef,
-	MarkdownView,
-	Modal,
-	moment,
-	Notice,
-	Plugin,
-	PluginSettingTab,
-	Setting,
-	Menu,
-	View, TAbstractFile, TFile
-} from 'obsidian';
-import {Exercise} from 'Exercise'
-import {ExerciseBase, EXERCISE_STATUSES, EXERCISE_STATUSES_SWAPPED, EXERCISE_SUBJECT} from "./ExerciseBase";
-import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
+	EXERCISE_BASE,
+	EXERCISE_STATUSES,
+	EXERCISE_STATUSES_SWAPPED,
+	EXERCISE_SUBJECT,
+	ExerciseBase
+} from "./ExerciseBase";
+import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
-import {Planner} from "./Planner";
-import {DAILY_DF_NAME_TEMPLATE, DataProcessor, StatFile} from "./DataProcessor";
-
+import {DataProcessor} from "./DataProcessor";
+import {parseJSON} from "./src/utility/parser";
 
 // Remember to rename these classes and interfaces!
 
@@ -30,35 +21,27 @@ interface HelloWorldPlugin {
 export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
 
-	planner = new Planner(this.app);
+	cpu: DataProcessor;
 
-	baseModal = new BaseModal(this.app,this);
-
-	activeBase: ExerciseBase | undefined;
+	baseModal: BaseModal;
 
 	onExFileChangeRef: EventRef;
-
-	statFile: StatFile;
-
-	dataProcessor: DataProcessor;
 
 	dataviewAPI: DataviewApi | undefined = getAPI(this.app);
 
 
 	async onload() {
 		// await this.loadSettings();
+		this.cpu = await DataProcessor.init(this.app);
+		this.baseModal = new BaseModal(this.app,this.cpu)
 		this.onExFileChangeRef =  this.app.vault.on("modify", this.onExcalidrawFileChange, this);
-		setTimeout(async () => {await this.planner.initialize()}, 1000);
-		setTimeout(async () => {this.initStatFile()}, 2000);
-
 
 
 		this.addCommand({
 			id: "switch-base",
 			name: "Switch Base",
 			callback: () => {
-				new BaseModal(this.app,this).open();
-				this.planner.loadAllBases();
+				this.baseModal.open();
 			}
 		})
 
@@ -66,32 +49,32 @@ export default class MyPlugin extends Plugin {
 			id: "close-base",
 			name: "Close Base",
 			callback: () => {
-				this.activeBase = undefined;
+				this.cpu.activeBase = undefined;
 			}
 		})
 
-		this.addCommand({
-			id: "reload-all-bases",
-			name: "Reload All Bases",
-			callback: async () => {
-				this.planner.loadAllBases();
-			}
-		})
+		// this.addCommand({
+		// 	id: "reload-all-bases",
+		// 	name: "Reload All Bases",
+		// 	callback: async () => {
+		// 		ExerciseBase.reloadAll(this.app);
+		// 	}
+		// })
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
+		// If the plugin hooks up any global DOM events (on parts of the app_ that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {
-				if(!this.activeBase) {
+				if(!this.cpu.activeBase) {
 					new Notice("No Base is selected!")
 					this.baseModal.open();
 				}
 				else {
-					if (this.activeBase.activeExercise) {
+					if (this.cpu.activeExercise) {
 						new Notice("An active exercise is running!")
 					}
 					else {
-						this.activeBase.query();
+						this.cpu.run();
 					}
 				}
 
@@ -100,9 +83,9 @@ export default class MyPlugin extends Plugin {
 
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "S") {
-				if(!this.activeBase?.activeExercise) new Notice("Currently, No Exercise is active!")
+				if(!this.cpu.activeExercise) new Notice("Currently, No Exercise is active!")
 				else {
-					new AssessModal(this.app,this).open()
+					new AssessModal(this.app,this.cpu).open()
 					new Notice("Successfully closed the active exercise")
 
 				}
@@ -112,37 +95,60 @@ export default class MyPlugin extends Plugin {
 		// this.registerInterval(window.setInterval(async () => {console.log(this.activeBase)}, 3 * 1000));
 	}
 
-	private async initStatFile() {
-		const sfn = DAILY_DF_NAME_TEMPLATE();
-		const sfExists: boolean = this.app.metadataCache.getFirstLinkpathDest(sfn, sfn) !== null;
-		if (!sfExists) {
-			this.statFile = new StatFile(this.app, sfn);
-			await this.statFile.create()
-		}
-		else {
-			// Read the data from the existing file and create a new SF object
-			const dailyData = StatFile.parseFrontmatter(await this.dataviewAPI?.io.load(sfn) as string);
-			this.statFile = new StatFile(this.app,sfn,dailyData);
-		}
-		Object.values(this.planner.exerciseBases).forEach(eb => eb.dataProcessor = new DataProcessor(this.statFile,eb))
-
-	}
+	// private async initStatFile() {
+	// 	const sfn = getDailyDfNameTemplate();
+	// 	const sfExists: boolean = this.app.metadataCache.getFirstLinkpathDest(sfn, sfn) !== null;
+	// 	if (!sfExists) {
+	// 		this.statFile = new StatFile(this.app, sfn);
+	// 		await this.statFile.create()
+	// 	}
+	// 	else {
+	// 		// Read the data from the existing file and create a new SF object
+	// 		const dailyData = StatFile.parseFrontmatter(await this.dataviewAPI?.io.load(sfn) as string);
+	// 		this.statFile = new StatFile(this.app,sfn,dailyData);
+	// 	}
+	// 	Object.values(this.planner.exerciseBases).forEach(eb => eb.dataProcessor = new DataProcessor(this.statFile,eb))
+	//
+	// }
 
 	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
 		console.log(`${file.name} Changed!`);
 		new Notice(`${file.name} Changed!`, 3000);
 		const tFile = this.app.metadataCache.getFirstLinkpathDest(file.path,file.path);
 		const fileName = tFile?.basename ? tFile?.basename : "";
-		const excalidrawFile: ExcalidrawFile | undefined = this.planner.exerciseBases[EXERCISE_SUBJECT.MATH]
-			.excalidrawFiles[fileName] || this.planner.exerciseBases[EXERCISE_SUBJECT.DSP]
-			.excalidrawFiles[fileName] || this.planner.exerciseBases[EXERCISE_SUBJECT.POLITICS]
-			.excalidrawFiles[fileName];
+		const excalidrawFile: ExcalidrawFile | undefined = this.cpu.bases[EXERCISE_SUBJECT.MATH]
+			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.DSP]
+			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.POLITICS]
+			.excalidraws_[fileName];
+		// if (excalidrawFile) excalidrawFile.checkAndUpdateForNewExercise()
+		if (excalidrawFile) {
+			excalidrawFile.currentContent = await excalidrawFile.read()
+			excalidrawFile.elements = parseJSON(excalidrawFile.currentContent).elements;
+			new Notice(`Previous number of exercises in excalidrawFile file: ${excalidrawFile.previeousExerciseArray.size}\n\nCurrent number of exercises in excalidrawFile file: ${excalidrawFile.exerciseArray.size}`, 2000);
 
-		if (excalidrawFile) excalidrawFile.checkAndUpdateForNewExercise()
+			const newLTArray = excalidrawFile.filterForNewExercise();
+			const deletedLTArray = excalidrawFile.filterForDeletedExercise();
+			if (newLTArray.length > 0 || deletedLTArray.length > 0) {
+				this.cpu.bases[excalidrawFile.subject].update("delete", deletedLTArray);
+				this.cpu.bases[excalidrawFile.subject].update("create",newLTArray);
+				excalidrawFile.previeousExerciseArray = new Set(excalidrawFile.exerciseArray);
+			}
+		}
 	}
 
 	onunload() {
 		this.app.vault.offref(this.onExFileChangeRef);
+	}
+
+	async update(){
+		for (let subject of Object.keys(EXERCISE_BASE)) {
+			let n = 0;
+			const nb = await ExerciseBase.migrateFromOBtoNB(this.app, EXERCISE_BASE[subject]);
+			nb.size = nb.exercises.length;
+			nb.exercises.forEach((ex)=>{ex.state === EXERCISE_STATUSES.Laser? n++ : -1})
+			nb.items_completed = n;
+			await nb.save(nb.jsonify());
+		}
 	}
 
 	// async loadSettings() {
@@ -154,31 +160,34 @@ export default class MyPlugin extends Plugin {
 	// }
 
 }
+
 export class AssessModal extends Modal {
-	option: string;
-	plugin: MyPlugin
+	status: EXERCISE_STATUSES;
+	cpu: DataProcessor
 	remark: string;
 
-	constructor(app:App,plugin:MyPlugin) {
+	constructor(app:App,cpu: DataProcessor) {
 		super(app);
-		this.plugin = plugin;
+		this.cpu = cpu;
 	}
 
 	onOpen() {
 
 		this.contentEl.createEl("h1",{text:"Assess"})
 
+		// Set Status
 		new Setting(this.contentEl)
 			.addDropdown(dp => {
 				dp.addOptions(EXERCISE_STATUSES_SWAPPED);
-				this.option = dp.getValue();
+				this.status = dp.getValue() as EXERCISE_STATUSES;
 				dp
 					.onChange(v => {
-					this.option = v;
+					this.status = v as EXERCISE_STATUSES;
 				})
 
 			});
 
+		// Set Remark
 		new Setting(this.contentEl)
 			.setName("Exercise Summary")
 			.setDesc("You can write down your brilliant ideas about this exercise")
@@ -189,31 +198,32 @@ export class AssessModal extends Modal {
 					})
 			})
 
+		// Close Button
 		new Setting(this.contentEl)
 			.addButton(bt => {
 				bt
 					.setButtonText("Confirm")
 					.setCta()
 					.onClick(()=>{
-						if (this.plugin.activeBase?.activeExercise){
-							this.plugin.activeBase.activeExercise.setStatus(this.option);
-							this.plugin.activeBase.activeExercise.setRemark(this.remark);
-							this.plugin.activeBase.closeExercise();
-							this.plugin.activeBase.dataProcessor.increaseExerciseCount();
+						if (this.cpu.activeExercise){
+							this.cpu.activeExercise?.setStatus(this.status);
+							this.cpu.activeExercise?.setRemark(this.remark);
+							this.cpu.closeUpCurrentExercise();
 							this.close();
 						}
 					})
 			})
-		new Setting(this.contentEl)
-			.addButton(bt => {
-				bt
-					.setButtonText("Quit Exercise Without Saving")
-					.setCta()
-					.onClick(() => {
-						this.plugin.activeBase?.earlyExerciseCLose();
-						this.close();
-					})
-			})
+
+		// new Setting(this.contentEl)
+		// 	.addButton(bt => {
+		// 		bt
+		// 			.setButtonText("Quit Exercise Without Saving")
+		// 			.setCta()
+		// 			.onClick(() => {
+		// 				this.cpu.activeBase?.earlyExerciseCLose();
+		// 				this.close();
+		// 			})
+		// 	})
 
 	}
 
@@ -222,12 +232,12 @@ export class AssessModal extends Modal {
 	}
 }
 export class BaseModal extends Modal {
-	plugin: MyPlugin;
+	cpu: DataProcessor;
 	cv:string;
 
-	constructor(app: App, plugin:MyPlugin){
+	constructor(app: App, cpu:DataProcessor){
 		super(app);
-		this.plugin = plugin;
+		this.cpu = cpu;
 	}
 
 	onOpen() {
@@ -254,7 +264,7 @@ export class BaseModal extends Modal {
 					.setCta()
 					.setButtonText("Confirm")
 					.onClick(()=>{
-						this.plugin.activeBase = this.plugin.planner.exerciseBases[this.cv];
+						this.cpu.activeBase = this.cpu.bases[this.cv];
 						this.close();
 					})
 			})
@@ -267,8 +277,8 @@ export class BaseModal extends Modal {
 // class SampleSettingTab extends PluginSettingTab {
 // 	plugin: MyPlugin;
 //
-// 	constructor(app: App, plugin: MyPlugin) {
-// 		super(app, plugin);
+// 	constructor(app_: App, plugin: MyPlugin) {
+// 		super(app_, plugin);
 // 		this.plugin = plugin;
 // 	}
 //

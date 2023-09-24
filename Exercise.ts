@@ -1,80 +1,102 @@
 import {
 	App,
-	moment,
+	moment, normalizePath,
 } from 'obsidian';
-import {ExerciseBase, EXERCISE_BASE, EXERCISE_STATUSES} from "./ExerciseBase";
-import {ExcalidrawFile} from "./Excalidraw";
+import {GenericFile} from "./GenericFile";
+import {EXERCISE_STATUSES} from "./ExerciseBase";
+import {parseJSON} from "./src/utility/parser";
 
 export type ExerciseLinkText = string;
 
-interface ExerciseWindow {
+interface ExerciseHistory {
 	startTimeStamp: number;
 	endTimeStamp: number;
 	remark?: string;
 	status: string;
 }
 
-interface ExerciseInfo {
-	link: string; // Link is in the format of Obsidian LinkText
-	type: string | undefined;
-	lastStatus: string // The status refers to the latest status of the exercise (status of the last ExerciseWindow)
-	lifeline: ExerciseWindow[];
+
+export interface ExerciseMetadata {
+	source: string; // Link is in the format of Obsidian LinkText
+
+	subject: string;
+
+	state: EXERCISE_STATUSES // The state refers to the latest state of the exercise (state of the last ExerciseHistory)
+
+	remark: string;
+
+	index: number;
+
+	history: ExerciseHistory[];
+
 	id:string;
-	excalidraw?: ExcalidrawFile;
-	base: ExerciseBase;
+
+	start_time: number;
+
+	end_time: number;
 }
 
-export class Exercise implements ExerciseInfo{
-	app:App;
-	link: ExerciseLinkText;
-	lifeline: ExerciseWindow[];
+
+export class Exercise implements ExerciseMetadata{
+	app_:App;
+
+	// source: ExerciseLinkText;
+	source: ExerciseLinkText;
+
+	history: ExerciseHistory[];
+
 	id: string;
-	type: string;
-	lastStatus: string
-	lastRemark: string = "";
-	excalidraw?: ExcalidrawFile;
-	base: ExerciseBase;
 
-	private _stime:number;
+	subject: string;
 
-	constructor(app:App, exerciseInfo:ExerciseInfo) {
+	state: EXERCISE_STATUSES;
+
+	remark: string = "";
+
+	index: number;
+
+	start_time: number;
+
+	end_time: number;
+
+	constructor(app:App, exerciseInfo: ExerciseMetadata) {
 		Object.assign(this,exerciseInfo)
-		this.app = app
-		this.lifeline = exerciseInfo?.lifeline || [];
-		this.id = this.extractIdFromLink();
+		this.app_ = app
+		this.history = exerciseInfo?.history || [];
 	}
 
-
-	private extractIdFromLink() {
-		const match = this.link.match(/\^\s*(\S*)/);
+	static extractIdFromLink(el: ExerciseLinkText) {
+		const match = el.match(/\^\s*(\S*)/);
 		return match?.[1] || "";
 	}
 
-	open() {
-		this._stime = moment().valueOf();
-		this.app.workspace.openLinkText(this.link, this.link,true);
+	start() {
+		this.start_time = moment().valueOf();
+		this.app_.workspace.openLinkText(this.source, this.source,true);
 	}
 
 	close() {
-		this.lifeline.push({
-			startTimeStamp: this._stime,
-			endTimeStamp: moment().valueOf(),
-			status: this.lastStatus,
-			remark: this.lastRemark
+		this.end_time = moment().valueOf();
+
+		this.history.push({
+			startTimeStamp: this.start_time,
+			endTimeStamp: this.end_time,
+			status: this.state,
+			remark: this.remark
 		});
 
 	}
 
-	getLastStartTime(): moment.Moment {
-		return moment(this.lifeline[this.lifeline.length - 1].startTimeStamp);
+	getStartTime(): moment.Moment {
+		return moment(this.start_time);
 	}
 
-	getLastEndTime(): moment.Moment {
-		return moment(this.lifeline[this.lifeline.length - 1].endTimeStamp);
+	getEndTime(): moment.Moment {
+		return moment(this.end_time);
 	}
 
-	getLastDurationString() {
-		const dur = moment.duration(this.getLastEndTime().diff(this.getLastStartTime()))
+	getDurationAsString() {
+		const dur = moment.duration(this.getEndTime().diff(this.getStartTime()))
 		const hours = Math.floor(dur.asHours());
 		const minutes = dur.minutes();
 		const seconds = dur.seconds();
@@ -82,23 +104,42 @@ export class Exercise implements ExerciseInfo{
 		return `\n\t- ${hours} hours\n\t- ${minutes} mins\n\t- ${seconds} seconds`;
 	}
 
-	getLastDurationInSecond(){
-		const dur = moment.duration(this.getLastEndTime().diff(this.getLastStartTime()))
+	getDurationInSeconds(){
+		const dur = moment.duration(this.getEndTime().diff(this.getStartTime()))
 		return dur.seconds()
 	}
 
-	setStatus(st:string) {
-		this.lastStatus = st;
+	setStatus(status:EXERCISE_STATUSES) {
+		this.state = status;
 	}
 
 	setRemark(remark: string) {
-		this.lastRemark = remark
+		this.remark = remark
 	}
 
 	getWikiLink():string{
-		return `[[${this.link}]]`
+		return `[[${this.source}]]`
+	}
+
+	static fromJSON(app:App, data: ExerciseMetadata): Exercise {
+		return new Exercise(app, data)
+	}
+
+	toJSON(){
+		return {
+			source: this.source,
+			id:this.id,
+			subject: this.subject,
+			index:this.index,
+			state: this.state,
+			start_time: this.start_time,
+			end_time: this.end_time,
+			remark: this.remark,
+			history: this.history
+		};
 	}
 
 }
+
 
 

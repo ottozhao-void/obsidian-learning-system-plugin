@@ -1,15 +1,13 @@
-import {Exercise, ExerciseLinkText} from "./Exercise";
+import {Exercise, ExerciseLinkText, ExerciseMetadata} from "./Exercise";
 import {DataArray, getAPI, Literal} from "obsidian-dataview";
-import {App, Notice, TFile} from "obsidian";
-import {ExcalidrawElement, ExcalidrawFile} from "./Excalidraw";
+import {App, Component, FileSystemAdapter, normalizePath, Notice, TFile} from "obsidian";
+import {ExcalidrawElement, ExcalidrawFile, ExcalidrawJSON} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
-import instantiate = WebAssembly.instantiate;
-import it from "node:test";
-import * as util from "util";
-import {DataProcessor} from "./DataProcessor";
+import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
+import {migrate_mapping, OldBaseStructure} from "./src/migration";
 
-enum QUERY_STRATEGY {
+export enum QUERY_STRATEGY {
 	"NEW_EXERCISE_FIRST"
 }
 
@@ -29,112 +27,172 @@ export enum EXERCISE_STATUSES_SWAPPED {
 	drifter = "Drifter"
 }
 
-// type SwapKeyValue<T extends Record<string, string>> = {
+// subject SwapKeyValue<T extends Record<string, string>> = {
 // 	[K in keyof T as T[K]]: K
 // }
 
 
-interface ExerciseBaseInfo {
-	name?: string;
+export interface BaseMetadata {
+	subject:string;
 	path: string;
-	size?: number;
-	excalidraw_tag: string;
-	type?:string;
-	strategy?:QUERY_STRATEGY.NEW_EXERCISE_FIRST;
+	size: number;
+	tag: string;
+	query_strategy:QUERY_STRATEGY;
+	items_completed: number
 }
+
+export interface SBaseData extends BaseMetadata{
+	exercises: Exercise[];
+}
+
+export type BaseContent = string;
+
 export enum EXERCISE_SUBJECT {
 	MATH = "Math",
 	DSP = "DSP",
 	POLITICS = "Politics"
 }
 
+export type ExerciseInitData = {
+	path: string;
+	tag: string;
+	subject: string;
+	query_strategy: QUERY_STRATEGY;
 
-export const EXERCISE_BASE: Record<string, ExerciseBaseInfo> = {
+}
+
+export const EXERCISE_BASE: Record<string, ExerciseInitData> = {
 	[EXERCISE_SUBJECT.MATH]: {
-		path: "Exercise Base - Math.md",
-		excalidraw_tag: "#excalidraw/math"
+		path: normalizePath("Exercise Base - Math.md"),
+		tag: "#excalidraw/math",
+		subject: "Math",
+		query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
 	},
 	[EXERCISE_SUBJECT.DSP]: {
-		path: "Exercise Base - DSP.md",
-		excalidraw_tag:"#excalidraw/signals_and_systems"
+		path: normalizePath("Exercise Base - DSP.md"),
+		tag:"#excalidraw/signals_and_systems",
+		subject: "DSP",
+		query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
 	},
 	[EXERCISE_SUBJECT.POLITICS]: {
-		path: "Exercise Base - Politics.md",
-		excalidraw_tag:"#excalidraw/政治"
+		path: normalizePath("Exercise Base - Politics.md"),
+		tag:"#excalidraw/政治",
+		subject: "Politics",
+		query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
 	}
 }
 // export const EXERCISE_SUBJECT: string[] = Object.keys(EXERCISE_BASE);
 
 
 
-export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
-	app:App;
+export class ExerciseBase extends GenericFile implements SBaseData{
+	app_:App;
+
+	dataViewAPI_: DataviewApi = getAPI() as DataviewApi;
 
 	size: number;
 
-	strategy: QUERY_STRATEGY = QUERY_STRATEGY.NEW_EXERCISE_FIRST;
+	items_completed: number;
 
-	type: string;
+	query_strategy: QUERY_STRATEGY = QUERY_STRATEGY.NEW_EXERCISE_FIRST;
 
-	excalidraw_tag: string;
+	subject: string;
 
-	activeExerciseIndex: number = -1;
+	tag: string;
 
-	dataViewAPI: DataviewApi = getAPI() as DataviewApi;
+	path: string;
 
-	activeExercise: Exercise | undefined;
+	excalidraws_: {[eFName: string]: ExcalidrawFile} = {};
 
-	baseFile: TFile | null;
+	exercises: Exercise[] = [];
 
-	excalidrawFiles: {[eFName: string]: ExcalidrawFile};
-
-	allExercises: Exercise[] = [];
-
-	isExist: boolean;
-
-	dataProcessor: DataProcessor;
+	// exists: boolean;
 
 
-	constructor(app: App, name:string, type: string, path: string, excalidraw_tag: string) {
-		super(app, name, path);
-		this.app = app;
-		this.type = type;
-		this.excalidraw_tag = excalidraw_tag
-		this.size = this.allExercises.length;
+	constructor(app: App, baseMetadata: ExerciseInitData | SBaseData) {
+		super(app,baseMetadata.path);
+		this.dataViewAPI_ = getAPI() as DataviewApi;
+		Object.assign(this, baseMetadata);
 	}
 
-	async initialize(): Promise<void> {
-		console.log(this);
-		// console.log(await this.dataViewAPI.luxon);
+	async indexExcalidraw(){
+		const targetExcalidrawPages: DataArray<Record<string, Literal>> = this.dataViewAPI_?.pages(this.tag) as DataArray<Record<string, Literal>>;
+		for (let page of targetExcalidrawPages){
+			const content = await this.app_.vault.adapter.read(normalizePath(page.file.path));
+			const parsedJSONBlock = parseJSON(content) as ExcalidrawJSON;
+			const elements: ExcalidrawElement[] = parsedJSONBlock.elements;
 
-		this.isExist = this.path !== undefined &&
-			this.app.vault.getAbstractFileByPath(this.path) !== null;
-		await this.scan();
 
-		if (!this.isExist) {
-			// console.log(`${this.name} entering first branch`)
-			this.isExist = true;
-			const eLinkTextArray: ExerciseLinkText[] = Object.values(this.excalidrawFiles).flatMap((ef)=>{
-				const exes = ef.getExerciseLinkText();
-				ef.exerciseLinkText = new Set(exes);
-				return exes;
-			});
-
-			await this.update("create",eLinkTextArray)
-		}
-		else {
-			this.load();
+			this.excalidraws_[page.file.name] = new ExcalidrawFile(this.app_,page.file.name,{
+				subject: this.subject,
+				path: page.file.path,
+				elements,
+				currentContent:content
+			})
+			this.excalidraws_[page.file.name].previeousExerciseArray = this.excalidraws_[page.file.name].exerciseArray;
 		}
 	}
 
-	async load() {
-		this.allExercises = this.getJSON(
-			await this.read()
-		).exercises.map(ex => new Exercise(this.app, ex));
-		this.size = this.allExercises.length;
-		this.baseFile = this.app.metadataCache.getFirstLinkpathDest(this.path, this.path);
+	async initIndex(){
+		// Index Excalidraw Files
+		const targetExcalidrawPages: DataArray<Record<string, Literal>> = this.dataViewAPI_?.pages(this.tag) as DataArray<Record<string, Literal>>;
+		for (let page of targetExcalidrawPages){
+			const content = await this.app_.vault.adapter.read(normalizePath(page.file.path));
+			const parsedJSONBlock = parseJSON(content) as ExcalidrawJSON;
+			const elements: ExcalidrawElement[] = parsedJSONBlock.elements;
 
-		Object.values(this.excalidrawFiles).forEach((ef)=>ef.exerciseLinkText = new Set(ef.getExerciseLinkText()));
+
+			this.excalidraws_[page.file.name] = new ExcalidrawFile(this.app_,page.file.name,{
+				subject: this.subject,
+				path: page.file.path,
+				elements,
+				currentContent:content
+			})
+			this.excalidraws_[page.file.name].previeousExerciseArray = this.excalidraws_[page.file.name].exerciseArray;
+		}
+
+
+		// Index Exercises
+		const exerciseLinkArray = Object.values(this.excalidraws_).flatMap((excal) => getExerciseLinkText(excal))
+
+		this.exercises.push(...exerciseLinkArray.map((el,index) => Exercise.fromJSON(this.app_, {
+			source: el,
+			subject: this.subject,
+			state: EXERCISE_STATUSES.New,
+			remark: "",
+			index: index,
+			history: [],
+			id: Exercise.extractIdFromLink(el),
+			start_time: 0,
+			end_time: 0
+		})))
+
+		this.size = this.exercises.length;
+		this.items_completed = 0;
+	}
+
+	jsonify(): BaseContent {
+		// console.log(this);
+		// console.log(this.size);
+		// console.log(this.items_completed);
+		return `\`\`\`json\n${JSON.stringify(this, (k,v) => {
+			if (k.endsWith("_")) return undefined;
+			return v;
+		}, 4)}\n\`\`\``
+	}
+
+	async save(content: BaseContent): Promise<void> {
+		await this.app_.vault.adapter.write(this.path, content);
+	}
+
+	static fromJSON(app:App, obj: SBaseData):ExerciseBase {
+		obj.exercises = obj.exercises.map(ex => new Exercise(app,ex))
+		return new ExerciseBase(app, obj);
+	}
+
+	static parseJSONFromPath: (app:App, path:string) => Promise<SBaseData> = async (app,path) => {
+		const content = await app.vault.adapter.read(path);
+		return parseJSON(content)
 	}
 
 	async update(actionType: "create" | "modify" | "delete",ct: ExerciseLinkText[] | Exercise) {
@@ -142,64 +200,39 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 		switch (actionType) {
 			case "modify":
 				if (ct instanceof Exercise){
-					this.allExercises.splice(this.activeExerciseIndex,0,ct);
+					this.exercises.splice(ct.index,0,ct);
 				}
 				break
 			case "create":
-				if (!(ct instanceof Exercise)) this.allExercises.push(...this.createNewExercise(ct));
-				// console.log(this.allExercises);
+				if (!(ct instanceof Exercise)) this.exercises.push(...this.createNewExercise(ct));
+				// console.log(this.exercises);
 				break
 			case "delete":
 				if (Array.isArray(ct)){
 					for (let elt of ct) {
-						this.allExercises.forEach((ex, index) => {
-							if (ex.link == elt) this.allExercises.splice(index,1);
+						this.exercises.forEach((ex, index) => {
+							if (ex.source == elt) this.exercises.splice(index,1);
 						})
 					}
 				}
 		};
 
 		// console.log(`length before: ${this.size}`);
-		this.size = this.allExercises.length;
+		this.size = this.exercises.length;
 		// console.log(`length after: ${this.size}`);
-		const baseContent = await this.exercisesToBaseContent()
+		const data = this.jsonify();
 
-		if (this.baseFile) {
-			this.app.vault.modify(this.baseFile, baseContent);
-		}
-		else {
-			this.baseFile = await this.app.vault.create(this.path, baseContent);
-		}
+
+		this.app_.vault.adapter.write(this.path,data)
+
 	}
 
-	async exercisesToBaseContent(): Promise<string> {
-		return this.generateJSONBlock(
-			this.allExercises
-				.map(ex => JSON.stringify(ex, (key, value) => {
-					if (value instanceof App) {
-						return undefined;
-					}
-					else if (value instanceof ExerciseBase)
-						return undefined;
-					if (key.startsWith("_")) return undefined;
-					return value
-				}, 3))
-				.join(",\n")
-		)
-	}
-
-	async scan(): Promise<void> {
-		const dvFiles: DataArray<Record<string, Literal>> = this.dataViewAPI?.pages(this.excalidraw_tag);
-		if (!dvFiles.length) new Notice(`No Exercises for ${this.type}`);
-
-		this.excalidrawFiles = await this.getExcalidrawFiles(dvFiles);
-	}
-
-	async query(): Promise<void> {
+	next(): Exercise | undefined {
+		let randomExerciseIndex: number = -1;
 		// console.log(this);
-		if (this.strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST) {
-			const newExercisesIndexes = this.allExercises
-				.map((ex,index) => ex.lastStatus == EXERCISE_STATUSES.New? index : -1)
+		if (this.query_strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST) {
+			const newExercisesIndexes = this.exercises
+				.map((ex) => ex.state == EXERCISE_STATUSES.New? ex.index : -1)
 				.filter((index) => index !== -1);
 
 			// If no new exercises are found
@@ -207,77 +240,48 @@ export class ExerciseBase extends GenericFile implements ExerciseBaseInfo{
 				new Notice("No more new Exercises!");
 				return;
 			}
-
-			const randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
+			console.log(this.exercises);
+			randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
 			new Notice(`Exercise at ${randomExerciseIndex} is being pulled out.`,3000);
-			this.activeExercise = this.allExercises.splice(randomExerciseIndex,1)[0];
-			this.activeExercise.open();
+
+		}
+
+		if (randomExerciseIndex != -1){
+			const nextExercise: Exercise = this.exercises.splice(randomExerciseIndex,1)[0];
+			return nextExercise;
 		}
 	}
 
-	closeExercise(){
-		if (this.activeExercise){
-
-			this.activeExercise.close();
-			this.dataProcessor.calculateAverageTimePerExercise(this.activeExercise.getLastDurationInSecond())
-			this.update("modify",this.activeExercise)
-			this.activeExerciseIndex = -1;
-
-			new Notice(`Start Time: ${this.activeExercise.getLastStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getLastEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getLastDurationString()}`,10000);
-
-			this.activeExercise = undefined;
-		}
+	static async migrateFromOBtoNB(app:App, data: ExerciseInitData): Promise<ExerciseBase>{
+		const ob: OldBaseStructure = parseJSON(await app.vault.adapter.read(normalizePath(data.path)));
+		const newExercises = ob["exercises"].map((o,index) => migrate_mapping(o, index));
+		return ExerciseBase.fromJSON(app, {
+			exercises: newExercises.map(ex => new Exercise(app,ex)),
+			items_completed: 0,
+			query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
+			size:0,
+			tag: data.tag,
+			subject:data.subject,
+			path: data.path
+		})
 	}
 
-	earlyExerciseCLose(){
-		if (this.activeExercise){
+	createNewExercise(exercisesLinkArray: string[]): Exercise[] {
+		return exercisesLinkArray.map((link, index) => {
 
-			this.update("modify",this.activeExercise)
-			this.activeExerciseIndex = -1;
-			this.activeExercise = undefined;
-
-			new Notice("Early closed exercise");
-		}
-	}
-
-	async getExcalidrawFiles(dvFiles:DataArray<Record<string, Literal>>): Promise<{[eFName: string]: ExcalidrawFile}> {
-		const excalidrawFiles = dvFiles.map(page => new ExcalidrawFile(
-				this.app,
-				this,
-				{
-					name: page.file.name,
-					path: page.file.path
-				}
-			))
-			.array()
-		await Promise.all(excalidrawFiles.map(ef => ef.initilize()));
-
-		let exca: {[eFName: string]: ExcalidrawFile} = {};
-		for (let ef of excalidrawFiles) {
-			exca[ef.name] = ef;
-		}
-
-		return exca;
-	}
-
-
-	createNewExercise(exercisesArray: string[]): Exercise[] {
-		return exercisesArray.map(link => {
-
-			return new Exercise(this.app, {
-				link,
-				type: this.type,
-				lifeline:[],
+			return new Exercise(this.app_, {
+				source: link,
+				subject: this.subject,
+				history:[],
 				id:"",
-				lastStatus:EXERCISE_STATUSES["New"],
-				base: this
+				state:EXERCISE_STATUSES["New"],
+				index: this.size + index,
+				remark: "",
+				start_time:0,
+				end_time:0
 			})
 		});
 	}
 
-
-	generateJSONBlock(jsonString:string): string {
-		return `\`\`\`json\n{\n"exercises":[\n${jsonString}]\n}\n\`\`\``;
-	}
 
 }
