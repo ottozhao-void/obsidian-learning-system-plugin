@@ -99,32 +99,16 @@ export default class MyPlugin extends Plugin {
 		this.registerInterval(window.setInterval(async () => {console.log(this.cpu.bases)}, 3 * 1000));
 	}
 
-	// private async initStatFile() {
-	// 	const sfn = getDailyDfNameTemplate();
-	// 	const sfExists: boolean = this.app.metadataCache.getFirstLinkpathDest(sfn, sfn) !== null;
-	// 	if (!sfExists) {
-	// 		this.statFile = new StatFile(this.app, sfn);
-	// 		await this.statFile.create()
-	// 	}
-	// 	else {
-	// 		// Read the data from the existing file and create a new SF object
-	// 		const dailyData = StatFile.parseFrontmatter(await this.dataviewAPI?.io.load(sfn) as string);
-	// 		this.statFile = new StatFile(this.app,sfn,dailyData);
-	// 	}
-	// 	Object.values(this.planner.exerciseBases).forEach(eb => eb.dataProcessor = new DataProcessor(this.statFile,eb))
-	//
-	// }
-
 	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
-		console.log(`${file.name} Changed!`);
-		new Notice(`${file.name} Changed!`, 3000);
+		// console.log(`${file.name} Changed!`);
 		const tFile = this.app.metadataCache.getFirstLinkpathDest(file.path,file.path);
 		const fileName = tFile?.basename ? tFile?.basename : "";
+		new Notice("picking out changed excalidraw file",3000);
 		const excalidrawFile: ExcalidrawFile | undefined = this.cpu.bases[EXERCISE_SUBJECT.MATH]
 			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.DSP]
 			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.POLITICS]
 			.excalidraws_[fileName];
-		// if (excalidrawFile) excalidrawFile.checkAndUpdateForNewExercise()
+		new Notice(`${file.name} Changed!`, 3000);
 		if (excalidrawFile) {
 			excalidrawFile.currentContent = await excalidrawFile.read()
 			excalidrawFile.elements = parseJSON(excalidrawFile.currentContent).elements;

@@ -1,65 +1,22 @@
-import {Exercise, ExerciseLinkText, ExerciseMetadata} from "./Exercise";
+import {Exercise, ExerciseLinkText} from "./Exercise";
 import {DataArray, getAPI, Literal} from "obsidian-dataview";
 import {App, Component, FileSystemAdapter, normalizePath, Notice, TFile} from "obsidian";
 import {ExcalidrawElement, ExcalidrawFile, ExcalidrawJSON} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
 import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
-import {migrate_mapping, OldBaseStructure} from "./src/migration";
+import {migrate_mapping} from "./src/exercise_version";
+import {BaseContent, ExerciseInitData, BaseMetadata_V0, SBaseMetadata} from "./src/base_version";
+import {EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY} from "./src/constants";
 
-export enum QUERY_STRATEGY {
-	"NEW_EXERCISE_FIRST"
-}
 
-export enum EXERCISE_STATUSES {
-	New = "new",
-	Inspiring = "inspiring",
-	Laser = "laser",
-	Stumble = "stumble",
-	Drifter = "drifter"
-}
 
-export enum EXERCISE_STATUSES_SWAPPED {
-	new = "New",
-	inspiring = "Inspiring",
-	laser = "Laser",
-	stumble = "Stumble",
-	drifter = "Drifter"
-}
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
 // 	[K in keyof T as T[K]]: K
 // }
 
 
-export interface BaseMetadata {
-	subject:string;
-	path: string;
-	size: number;
-	tag: string;
-	query_strategy:QUERY_STRATEGY;
-	items_completed: number
-}
-
-export interface SBaseData extends BaseMetadata{
-	exercises: Exercise[];
-}
-
-export type BaseContent = string;
-
-export enum EXERCISE_SUBJECT {
-	MATH = "Math",
-	DSP = "DSP",
-	POLITICS = "Politics"
-}
-
-export type ExerciseInitData = {
-	path: string;
-	tag: string;
-	subject: string;
-	query_strategy: QUERY_STRATEGY;
-
-}
 
 export const EXERCISE_BASE: Record<string, ExerciseInitData> = {
 	[EXERCISE_SUBJECT.MATH]: {
@@ -85,7 +42,7 @@ export const EXERCISE_BASE: Record<string, ExerciseInitData> = {
 
 
 
-export class ExerciseBase extends GenericFile implements SBaseData{
+export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	app_:App;
 
 	dataViewAPI_: DataviewApi = getAPI() as DataviewApi;
@@ -109,7 +66,7 @@ export class ExerciseBase extends GenericFile implements SBaseData{
 	// exists: boolean;
 
 
-	constructor(app: App, baseMetadata: ExerciseInitData | SBaseData) {
+	constructor(app: App, baseMetadata: ExerciseInitData | SBaseMetadata) {
 		super(app,baseMetadata.path);
 		this.dataViewAPI_ = getAPI() as DataviewApi;
 		Object.assign(this, baseMetadata);
@@ -135,22 +92,7 @@ export class ExerciseBase extends GenericFile implements SBaseData{
 
 	async initIndex(){
 		// Index Excalidraw Files
-		const targetExcalidrawPages: DataArray<Record<string, Literal>> = this.dataViewAPI_?.pages(this.tag) as DataArray<Record<string, Literal>>;
-		for (let page of targetExcalidrawPages){
-			const content = await this.app_.vault.adapter.read(normalizePath(page.file.path));
-			const parsedJSONBlock = parseJSON(content) as ExcalidrawJSON;
-			const elements: ExcalidrawElement[] = parsedJSONBlock.elements;
-
-
-			this.excalidraws_[page.file.name] = new ExcalidrawFile(this.app_,page.file.name,{
-				subject: this.subject,
-				path: page.file.path,
-				elements,
-				currentContent:content
-			})
-			this.excalidraws_[page.file.name].previeousExerciseArray = this.excalidraws_[page.file.name].exerciseArray;
-		}
-
+		this.indexExcalidraw();
 
 		// Index Exercises
 		const exerciseLinkArray = Object.values(this.excalidraws_).flatMap((excal) => getExerciseLinkText(excal))
@@ -185,14 +127,14 @@ export class ExerciseBase extends GenericFile implements SBaseData{
 		await this.app_.vault.adapter.write(this.path, content);
 	}
 
-	static async fromJSON(app:App, obj: SBaseData): Promise<ExerciseBase> {
+	static async fromJSON(app:App, obj: SBaseMetadata): Promise<ExerciseBase> {
 		obj.exercises = obj.exercises.map(ex => new Exercise(app,ex))
 		let base: ExerciseBase = new ExerciseBase(app, obj);
 		await base.indexExcalidraw();
 		return base;
 	}
 
-	static parseJSONFromPath: (app:App, path:string) => Promise<SBaseData> = async (app,path) => {
+	static parseJSONFromPath: (app:App, path:string) => Promise<SBaseMetadata> = async (app,path) => {
 		const content = await app.vault.adapter.read(path);
 		return parseJSON(content)
 	}
@@ -262,7 +204,7 @@ export class ExerciseBase extends GenericFile implements SBaseData{
 	}
 
 	static async migrateFromOBtoNB(app:App, data: ExerciseInitData): Promise<ExerciseBase>{
-		const ob: OldBaseStructure = parseJSON(await app.vault.adapter.read(normalizePath(data.path)));
+		const ob: BaseMetadata_V0 = parseJSON(await app.vault.adapter.read(normalizePath(data.path)));
 		const newExercises = ob["exercises"].map((o,index) => migrate_mapping(o, index));
 		return ExerciseBase.fromJSON(app, {
 			exercises: newExercises.map(ex => new Exercise(app,ex)),

@@ -9,7 +9,7 @@ import {
 } from "./ExerciseBase";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {DataArray, getAPI, Literal, parseField} from "obsidian-dataview";
-import {Exercise, ExerciseLinkText, ExerciseMetadata} from "./Exercise";
+import {Exercise, ExerciseLinkText, ExerciseMetadata_V1} from "./Exercise";
 import {ExcalidrawElement, ExcalidrawFile, ExcalidrawJSON} from "./Excalidraw";
 import {getExerciseLinkText, parseFrontmatter, parseJSON} from "./src/utility/parser";
 import {stringifyTOJSON} from "./src/utility/io";

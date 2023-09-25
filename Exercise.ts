@@ -2,42 +2,13 @@ import {
 	App,
 	moment, normalizePath,
 } from 'obsidian';
-import {GenericFile} from "./GenericFile";
-import {EXERCISE_STATUSES} from "./ExerciseBase";
-import {parseJSON} from "./src/utility/parser";
+import {ExerciseHistory, ExerciseMetadata_V1} from "./src/exercise_version";
+import {EXERCISE_STATUSES} from "./src/constants";
 
 export type ExerciseLinkText = string;
 
-interface ExerciseHistory {
-	startTimeStamp: number;
-	endTimeStamp: number;
-	remark?: string;
-	status: string;
-}
 
-
-export interface ExerciseMetadata {
-	source: string; // Link is in the format of Obsidian LinkText
-
-	subject: string;
-
-	state: EXERCISE_STATUSES // The state refers to the latest state of the exercise (state of the last ExerciseHistory)
-
-	remark: string;
-
-	index: number;
-
-	history: ExerciseHistory[];
-
-	id:string;
-
-	start_time: number;
-
-	end_time: number;
-}
-
-
-export class Exercise implements ExerciseMetadata{
+export class Exercise implements ExerciseMetadata_V1{
 	app_:App;
 
 	// source: ExerciseLinkText;
@@ -59,7 +30,7 @@ export class Exercise implements ExerciseMetadata{
 
 	end_time: number;
 
-	constructor(app:App, exerciseInfo: ExerciseMetadata) {
+	constructor(app:App, exerciseInfo: ExerciseMetadata_V1) {
 		Object.assign(this,exerciseInfo)
 		this.app_ = app
 		this.history = exerciseInfo?.history || [];
@@ -121,7 +92,7 @@ export class Exercise implements ExerciseMetadata{
 		return `[[${this.source}]]`
 	}
 
-	static fromJSON(app:App, data: ExerciseMetadata): Exercise {
+	static fromJSON(app:App, data: ExerciseMetadata_V1): Exercise {
 		return new Exercise(app, data)
 	}
 
