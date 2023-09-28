@@ -1,19 +1,13 @@
 import {App, stringifyYaml, TFile, moment, Notice, normalizePath, parseYaml, addIcon} from "obsidian";
-import {
-	EXERCISE_BASE,
-	EXERCISE_STATUSES,
-	EXERCISE_SUBJECT,
-	ExerciseBase,
-	QUERY_STRATEGY,
-	SBaseData
-} from "./ExerciseBase";
-import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {DataArray, getAPI, Literal, parseField} from "obsidian-dataview";
-import {Exercise, ExerciseLinkText, ExerciseMetadata_V1} from "./Exercise";
-import {ExcalidrawElement, ExcalidrawFile, ExcalidrawJSON} from "./Excalidraw";
+import {Exercise, ExerciseLinkText} from "./Exercise";
 import {getExerciseLinkText, parseFrontmatter, parseJSON} from "./src/utility/parser";
-import {stringifyTOJSON} from "./src/utility/io";
-import {DayFrontmatter, StatFile} from "./StatFile";
+import {DataFile} from "./DataFile";
+import {BaseInterface} from "./BaseInterface";
+import {EXERCISE_BASE} from "./src/constants";
+import {SBaseMetadata} from "./src/base_version";
+import {DayMetadata_Latest} from "./src/dailData_version";
+import {BaseModal} from "./src/Modal";
 
 
 export const getDailyDfNameTemplate = ():string => {
@@ -25,67 +19,110 @@ const AVERAGE_TIME_KEY = '_averageTime';
 const EXERCISES_KEY = '_exercises';
 const TOTAL_TIME_KEY = '_total_time';
 
+export interface Observer {
+	react: (message: string) => any
+	action: string;
+	notify: (message: string) => any
+	observers: {react: (message: string) => void}[];
+
+}
+
+// class Observer {
+//
+// 	react(message: string){
+//
+// 	}
+//
+// }
 
 
 
-
-export class DataProcessor{
+export class CentralProcessor implements Observer{
 	app_: App;
-	// The statfile should be the runtime Object of the actual Obsidian note that store the data.
-	statfile: StatFile;
 
-	bases: {[K: string]: ExerciseBase} = {};
 
-	activeBase: ExerciseBase | undefined;
+
+	set userSetBaseType(value: boolean) {
+		value ?
+			this.action = "BaseSelect"
+			: null;
+	}
+
+	set userRequestForExercise(value: boolean){
+		value ?
+			this.running ?
+				new Notice("An running exercise is running!") :
+				this.action = "ExerciseQuery"
+			: null;
+	}
+
+	set userCompletedExercise(value: boolean){
+
+	}
+
+	react(message: string) {
+		switch (message) {
+			case "BaseSelectionDone":
+				this
+		}
+	}
+
+	set action(action: string) {action ? this.notify(action) : null}
+
+	notify(message: string) {this.observers.forEach(ob => ob.react(message))}
+
+	observers: Observer[];
+
+
+	// bases: {[K: string]: BaseInterface} = {};
+
+	bi: BaseInterface | undefined;
 
 	activeExercise: Exercise | undefined;
 
-	private constructor(app:App, bases: {[K: string]: ExerciseBase}, statFile: StatFile) {
+	private constructor(app:App) {
 		this.app_ = app;
-		this.bases = bases;
-		this.statfile = statFile
-
 	}
 
 	static async init(app:App){
 		//
 		const dvAPI = getAPI();
 
-		// const statFile: StatFile = await StatFile.init(app);
+		// const statFile: DataFile = await DataFile.init(app);
 
 		// Init Exercise Base
-		let bases: {[K: string]: ExerciseBase} = {};
+		let bases: {[K: string]: BaseInterface} = {};
 		for (let subject of Object.keys(EXERCISE_BASE)) {
 			const {path, tag} = EXERCISE_BASE[subject];
 			const exists = await app.vault.adapter.exists(path);
 			if (exists){
 				// 如果存在的话，就先读取，再初始化
-				let baseJSON: SBaseData = parseJSON(await app.vault.adapter.read(normalizePath(path)))
-				bases[subject] = await ExerciseBase.fromJSON(app,baseJSON);
+				let baseJSON: SBaseMetadata = parseJSON(await app.vault.adapter.read(normalizePath(path)))
+				bases[subject] = await BaseInterface.fromJSON(app,baseJSON);
 			}
 			else {
 				// 如果不存在的话，就先创造初始化，再写入
-				bases[subject] = new ExerciseBase(app, EXERCISE_BASE[subject])
+				bases[subject] = new BaseInterface(app, EXERCISE_BASE[subject])
 				// console.log(bases[subject]);
 				await bases[subject].initIndex();
 				await bases[subject].save(bases[subject].jsonify());
 			}
 		}
 
-		// Init StatFile
-		const statFilePath = StatFile.path;
+		// Init DataFile
+		const statFilePath = DataFile.path;
 		const exists = await app.vault.adapter.exists(statFilePath);
-		let statFile:StatFile;
+		let statFile:DataFile;
 		if (exists) {
-			const dayFrontmatter: DayFrontmatter = parseFrontmatter(await app.vault.adapter.read(normalizePath(statFilePath))) as DayFrontmatter
-			statFile = StatFile.fromFrontmatter(app,dayFrontmatter)
+			const dayFrontmatter: DayMetadata_Latest = parseFrontmatter(await app.vault.adapter.read(normalizePath(statFilePath))) as DayMetadata_Latest
+			statFile = DataFile.fromFrontmatter(app,dayFrontmatter)
 		}
 		else {
-			statFile = new StatFile(app)
+			statFile = new DataFile(app)
 			await statFile.save()
 		}
 
-		return new DataProcessor(app,bases,statFile);
+		return new CentralProcessor(app,bases,statFile);
 	}
 
 	getFieldValue(keySuffix:string){
@@ -112,10 +149,6 @@ export class DataProcessor{
 		this.calculateTimeSpentOnSubjectForTheDay();
 	}
 
-
-	// This functions accumulates the number of exercises that has done so far
-	accumulateExerciseCountForSubject(){}
-
 	// This function calculates the time spent on a particular particular subject
 	async calculateTimeSpentOnSubjectForTheDay(){
 		const noe: number = this.getFieldValue(EXERCISES_KEY);
@@ -138,7 +171,7 @@ export class DataProcessor{
 				// Update the Runtime Exercise Object
 				this.activeExercise.close();
 
-				// Update the Runtime StatFile Object
+				// Update the Runtime DataFile Object
 				await this.calculateAverageTimePerExercise(this.activeExercise.getDurationInSeconds())
 				await this.increaseExerciseCount();
 				await this.calculateTimeSpentOnSubjectForTheDay();
@@ -146,7 +179,7 @@ export class DataProcessor{
 				// Save these updates to Obsidian Notes
 				this.activeBase?.update("modify", this.activeExercise); // Save Exercises
 				console.log(this.statfile);
-				await this.statfile.save(); // Save StatFile
+				await this.statfile.save(); // Save DataFile
 
 				new Notice(`Start Time: ${this.activeExercise.getStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getDurationAsString()}`, 10000);
 
@@ -155,6 +188,11 @@ export class DataProcessor{
 		this.activeExercise = undefined;
 
 	}
+
+	get running(): boolean{
+		return this.activeExercise !== null;
+	}
+
 
 }
 

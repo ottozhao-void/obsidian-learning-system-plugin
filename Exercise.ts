@@ -7,7 +7,6 @@ import {EXERCISE_STATUSES} from "./src/constants";
 
 export type ExerciseLinkText = string;
 
-
 export class Exercise implements ExerciseMetadata_V1{
 	app_:App;
 

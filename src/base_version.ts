@@ -28,5 +28,4 @@ export type ExerciseInitData = {
 	tag: string;
 	subject: string;
 	query_strategy: QUERY_STRATEGY;
-
 }

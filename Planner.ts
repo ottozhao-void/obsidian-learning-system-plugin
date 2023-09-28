@@ -1,12 +1,12 @@
 // import {App} from "obsidian";
-// import {EXERCISE_BASE, ExerciseBase, EXERCISE_SUBJECT} from "./ExerciseBase";
-// import {StatFile} from "./DataProcessor";
+// import {EXERCISE_BASE, BaseInterface, EXERCISE_SUBJECT} from "./BaseInterface";
+// import {DataFile} from "./CentralProcessor";
 //
 // const COUNT_TEMPLATE = "return `${subject}_exercises:`"
 //
 // export class Planner {
 // 	app:App;
-// 	exerciseBases: {[K: string]: ExerciseBase} = {};
+// 	exerciseBases: {[K: string]: BaseInterface} = {};
 //
 // 	constructor(app:App) {
 // 		this.app = app;
@@ -14,7 +14,7 @@
 //
 // 	async initialize(){
 // 		Object.keys(EXERCISE_BASE).forEach((subject) => {
-// 			this.exerciseBases[subject] = new ExerciseBase(
+// 			this.exerciseBases[subject] = new BaseInterface(
 // 				this.app,
 // 				`Exercise Base - ${subject}`,
 // 				subject,

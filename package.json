@@ -24,6 +24,7 @@
 	"dependencies": {
 		"js-yaml": "^4.1.0",
 		"obsidian-dataview": "^0.5.56",
-		"obsidian-excalidraw-plugin": "^1.9.14"
+		"obsidian-excalidraw-plugin": "^1.9.14",
+		"simple-statistics": "^7.8.3"
 	}
 }

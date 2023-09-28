@@ -1,16 +1,17 @@
 import {App, EventRef, Modal, normalizePath, Notice, Plugin, Setting, TAbstractFile} from 'obsidian';
 import {
+	BaseInterface
+} from "./BaseInterface";
+import {ExcalidrawFile} from "./Excalidraw";
+import {CentralProcessor} from "./CentralProcessor";
+import {parseJSON} from "./src/utility/parser";
+import {SBaseMetadata} from "./src/base_version";
+import {
 	EXERCISE_BASE,
 	EXERCISE_STATUSES,
-	EXERCISE_STATUSES_SWAPPED,
-	EXERCISE_SUBJECT,
-	ExerciseBase, SBaseData
-} from "./ExerciseBase";
-import {ExcalidrawFile} from "./Excalidraw";
-import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
-import {getAPI} from "obsidian-dataview";
-import {DataProcessor} from "./DataProcessor";
-import {parseJSON} from "./src/utility/parser";
+	EXERCISE_STATUSES_OPTION,
+	EXERCISE_SUBJECT
+} from "./src/constants";
 
 // Remember to rename these classes and interfaces!
 
@@ -21,20 +22,19 @@ interface HelloWorldPlugin {
 export default class MyPlugin extends Plugin {
 	settings: HelloWorldPlugin;
 
-	cpu: DataProcessor;
+	cpu: CentralProcessor;
 
 	baseModal: BaseModal;
 
 	onExFileChangeRef: EventRef;
 
-	dataviewAPI: DataviewApi | undefined = getAPI(this.app);
-
 
 	async onload() {
 		// await this.loadSettings();
-		this.cpu = await DataProcessor.init(this.app);
+		this.cpu = await CentralProcessor.init(this.app);
 		this.baseModal = new BaseModal(this.app,this.cpu)
 		this.onExFileChangeRef =  this.app.vault.on("modify", this.onExcalidrawFileChange, this);
+		BaseInterface.reSetExercisesIndex(this.cpu.bases[EXERCISE_SUBJECT.MATH]);
 
 
 		this.addCommand({
@@ -59,8 +59,8 @@ export default class MyPlugin extends Plugin {
 			callback: async () => {
 				for (let subject of Object.keys(EXERCISE_BASE)) {
 					const path = EXERCISE_BASE[subject].path;
-					let baseJSON: SBaseData = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
-					this.cpu.bases[subject] = await ExerciseBase.fromJSON(this.app,baseJSON);
+					let baseJSON: SBaseMetadata = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
+					this.cpu.bases[subject] = await BaseInterface.fromJSON(this.app,baseJSON);
 				}
 			}
 		})
@@ -69,34 +69,26 @@ export default class MyPlugin extends Plugin {
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {
-				if(!this.cpu.activeBase) {
-					new Notice("No Base is selected!")
+				this.cpu.activeBase ? (() => {
+					new Notice("No Base is selected!");
 					this.baseModal.open();
-				}
-				else {
-					if (this.cpu.activeExercise) {
-						new Notice("An active exercise is running!")
-					}
-					else {
-						this.cpu.run();
-					}
-				}
-
+				})() : this.cpu.running ? new Notice("An running exercise is running!") : this.cpu.run();
 			}
 		});
+
+		// this.registerDomEvent(window, "beforeunload", async ()=> {await this.app.vault.adapter.write(normalizePath("OnObsidianCloseFile.md"),"Success!")})
 
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "S") {
-				if(!this.cpu.activeExercise) new Notice("Currently, No Exercise is active!")
+				if(!this.cpu.activeExercise) new Notice("Currently, No Exercise is running!")
 				else {
 					new AssessModal(this.app,this.cpu).open()
-					new Notice("Successfully closed the active exercise")
+					new Notice("Successfully closed the running exercise")
 
 				}
 			}
 		});
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(async () => {console.log(this.cpu.bases)}, 3 * 1000));
+
 	}
 
 	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
@@ -108,7 +100,8 @@ export default class MyPlugin extends Plugin {
 			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.DSP]
 			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.POLITICS]
 			.excalidraws_[fileName];
-		new Notice(`${file.name} Changed!`, 3000);
+		// new Notice(`${excalidrawFile.name} Changed!`, 3000);
+		if (!excalidrawFile) new Notice("excalidraw is missing!")
 		if (excalidrawFile) {
 			excalidrawFile.currentContent = await excalidrawFile.read()
 			excalidrawFile.elements = parseJSON(excalidrawFile.currentContent).elements;
@@ -124,14 +117,14 @@ export default class MyPlugin extends Plugin {
 		}
 	}
 
-	onunload() {
+	async onunload() {
 		this.app.vault.offref(this.onExFileChangeRef);
 	}
 
 	async update(){
 		for (let subject of Object.keys(EXERCISE_BASE)) {
 			let n = 0;
-			const nb = await ExerciseBase.migrateFromOBtoNB(this.app, EXERCISE_BASE[subject]);
+			const nb = await BaseInterface.migrateFromOBtoNB(this.app, EXERCISE_BASE[subject]);
 			nb.size = nb.exercises.length;
 			nb.exercises.forEach((ex)=>{ex.state === EXERCISE_STATUSES.Laser? n++ : -1})
 			nb.items_completed = n;
@@ -149,118 +142,7 @@ export default class MyPlugin extends Plugin {
 
 }
 
-export class AssessModal extends Modal {
-	status: EXERCISE_STATUSES;
-	cpu: DataProcessor
-	remark: string;
 
-	constructor(app:App,cpu: DataProcessor) {
-		super(app);
-		this.cpu = cpu;
-	}
-
-	onOpen() {
-
-		this.contentEl.createEl("h1",{text:"Assess"})
-
-		// Set Status
-		new Setting(this.contentEl)
-			.addDropdown(dp => {
-				dp.addOptions(EXERCISE_STATUSES_SWAPPED);
-				this.status = dp.getValue() as EXERCISE_STATUSES;
-				dp
-					.onChange(v => {
-					this.status = v as EXERCISE_STATUSES;
-				})
-
-			});
-
-		// Set Remark
-		new Setting(this.contentEl)
-			.setName("Exercise Summary")
-			.setDesc("You can write down your brilliant ideas about this exercise")
-			.addTextArea(ta => {
-				ta
-					.onChange(v => {
-						this.remark = v
-					})
-			})
-
-		// Close Button
-		new Setting(this.contentEl)
-			.addButton(bt => {
-				bt
-					.setButtonText("Confirm")
-					.setCta()
-					.onClick(()=>{
-						if (this.cpu.activeExercise){
-							this.cpu.activeExercise?.setStatus(this.status);
-							this.cpu.activeExercise?.setRemark(this.remark);
-							this.cpu.closeUpCurrentExercise();
-							this.close();
-						}
-					})
-			})
-
-		new Setting(this.contentEl)
-			.addButton(bt => {
-				bt
-					.setButtonText("Quit Exercise Without Saving")
-					.setCta()
-					.onClick(() => {
-						this.cpu.closeUpCurrentExercise(true);
-						this.close();
-					})
-			})
-
-	}
-
-	onClose() {
-		this.contentEl.empty();
-	}
-}
-export class BaseModal extends Modal {
-	cpu: DataProcessor;
-	cv:string;
-
-	constructor(app: App, cpu:DataProcessor){
-		super(app);
-		this.cpu = cpu;
-	}
-
-	onOpen() {
-		this.contentEl.createEl("h1",{text:"Exercise Base Selection"})
-
-		new Setting(this.contentEl)
-			.addDropdown((dp => {
-				this.cv = dp
-					.addOptions(Object.values(EXERCISE_SUBJECT).reduce<Record<string, string>>(
-						(acc,item)=>{
-						acc[item] = item;
-						return acc;
-					}, {})).getValue();
-
-				dp
-					.onChange(v => {
-						this.cv	 = v
-					})
-			}))
-
-		new Setting(this.contentEl)
-			.addButton(bt => {
-				bt
-					.setCta()
-					.setButtonText("Confirm")
-					.onClick(()=>{
-						this.cpu.activeBase = this.cpu.bases[this.cv];
-						this.close();
-					})
-			})
-	}
-	onClose() {
-		this.contentEl.empty();
-	}
-}
 
 // class SampleSettingTab extends PluginSettingTab {
 // 	plugin: MyPlugin;

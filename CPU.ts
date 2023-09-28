@@ -1,5 +1,5 @@
-import {StatFile} from "./DataProcessor";
-import {ExerciseBase} from "./ExerciseBase";
+import {DataFile} from "./CentralProcessor";
+import {BaseInterface} from "./BaseInterface";
 
 
 export class CPU{
@@ -7,10 +7,10 @@ export class CPU{
 	// The statfile should be the runtime Object of the actual Obsidian note that store the data.
 	statfile: StatFile;
 
-	exerciseBase: ExerciseBase;
+	exerciseBase: BaseInterface;
 	baseType: string;
 
-	constructor(dataFile:StatFile,exerciseBase: ExerciseBase) {
+	constructor(dataFile:StatFile,exerciseBase: BaseInterface) {
 		this.statfile = dataFile;
 		this.exerciseBase = exerciseBase;
 		this.baseType = exerciseBase.subject;

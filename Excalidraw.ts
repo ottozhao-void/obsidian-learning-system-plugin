@@ -1,6 +1,6 @@
 import {App, EventRef, Notice, TAbstractFile, TFile} from "obsidian";
 import {GenericFile} from "./GenericFile";
-import {ExerciseBase} from "./ExerciseBase";
+import {BaseInterface} from "./BaseInterface";
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
 
