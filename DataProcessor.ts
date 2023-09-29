@@ -113,9 +113,15 @@ export class DataProcessor{
 	}
 
 	async run(){
-		this.activeExercise = this.activeBase?.next()
+		this.activeExercise = this.activeBase?.next();
+		// this.activeExercise?.source = this.getSourceLinktext(this.activeExercise?.id);
 		this.activeExercise?.start();
 	}
+	//
+	// getSourceLinktext(id: string): ExerciseLinkText{
+	// 	const [id1, id2] = id.split("-");
+	// 	return this.activeBase?.excalidraws_[id1].idLinktextMapping[id2];
+	// }
 
 	async closeUpCurrentExercise(early: boolean = false){
 		if (this.activeExercise) {

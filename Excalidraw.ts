@@ -43,6 +43,7 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 	previeousExerciseArray: Set<ExerciseLinkText>;
 
 	idLinktextMapping: Record<string, ExerciseLinkText>;
+	// linktextIDMapping: ;
 
 	// 现在读取Excalidraw文件的目的只是读取其内部的Excalidraw Elements
 	static async read(app:App, path:string): Promise<ExcalidrawElement[]> {
@@ -65,6 +66,7 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 				const id = `${excalidraw.name}-${Math.ceil(Math.abs(el.x) + Math.abs(el.y))}`;
 				return [id,linktext]
 			}))
+
 		return excalidraw.idLinktextMapping
 	}
 
@@ -74,6 +76,11 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 		Object.assign(this,excalidrawFileInfo);
 	}
 
+	get linktextIDMapping(): Record<ExerciseLinkText, string>{
+		return Object.fromEntries(
+			Object.entries(this.idLinktextMapping).map(([key, value]) => [value, key])
+		)
+	}
 
 	filterForNewExercise(): ExerciseLinkText[] {
 		return Array.from(this.exerciseArray).filter(ex => !this.previeousExerciseArray.has(ex));

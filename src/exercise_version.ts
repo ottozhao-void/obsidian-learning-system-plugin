@@ -10,7 +10,7 @@ export interface ExerciseMetadata_V0 {
 }
 
 export interface ExerciseMetadata_V1 {
-	source: string; // Link is in the format of Obsidian LinkText
+	// source: string; // Link is in the format of Obsidian LinkText
 
 	id:string;
 
@@ -56,7 +56,6 @@ export interface ExerciseMetadata_V2 {
 
 	history: ExerciseHistory[];
 
-
 }
 
 export interface ExerciseHistory {
@@ -69,7 +68,7 @@ export interface ExerciseHistory {
 
 export function migrate_mapping(oj: ExerciseMetadata_V0, index: number): ExerciseMetadata_V1{
 	return {
-		source: oj["link"],
+		// source: oj["link"],
 		subject: oj["type"],
 		state: oj["lastStatus"] as EXERCISE_STATUSES,
 		remark:oj["lastRemark"],

@@ -75,14 +75,16 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	async indexExcalidraw(){
 		const targetExcalidrawPages: DataArray<Record<string, Literal>> = this.dataViewAPI_?.pages(this.tag) as DataArray<Record<string, Literal>>;
 		for (let page of targetExcalidrawPages){
-
-			this.excalidraws_[page.file.name] = new ExcalidrawFile(this.app_,page.file.name,{
+			const name = page.file.name;
+			const path = page.file.path;
+			this.excalidraws_[name] = new ExcalidrawFile(this.app_,name,{
 				subject: this.subject,
-				path: page.file.path,
-				elements: await ExcalidrawFile.read(this.app_,page.file.path)
+				path,
+				elements: await ExcalidrawFile.read(this.app_,path)
 			})
-			this.excalidraws_[page.file.name].previeousExerciseArray = this.excalidraws_[page.file.name].exerciseArray;
-		}
+			this.excalidraws_[name].previeousExerciseArray = this.excalidraws_[name].exerciseArray;
+			this.excalidraws_[name].idLinktextMapping = ExcalidrawFile.createIDLinktextMapping(this.excalidraws_[name]);
+1		}
 	}
 
 	async initIndex(){
@@ -92,20 +94,16 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		// Index Exercises
 		const exerciseLinkArray = Object.values(this.excalidraws_).flatMap((excal) => getExerciseLinkText(excal));
 
-		this.exercises.push(...exerciseLinkArray.map((el,index) => Exercise.fromJSON(this.app_, {
-			source: el,
-			subject: this.subject,
-			state: EXERCISE_STATUSES.New,
-			remark: "",
-			index: index,
-			history: [],
-			id: Exercise.extractIdFromLink(el),
-			start_time: 0,
-			end_time: 0
-		})))
+		this.exercises.push(...exerciseLinkArray.map((el,index) => this.createNewExercise(el,index)))
 
 		this.size = this.exercises.length;
 		this.items_completed = 0;
+	}
+
+	getExerciseID(linktext: ExerciseLinkText){
+		const excalidrawFileName = linktext.split("#")[0];
+		const excalidraw = this.excalidraws_[excalidrawFileName]
+		return excalidraw.linktextIDMapping[linktext];
 	}
 
 	jsonify(): BaseContent {
@@ -136,7 +134,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	}
 
 	static async fromJSON(app:App, obj: SBaseMetadata): Promise<ExerciseBase> {
-		obj.exercises = obj.exercises.map(ex => new Exercise(app,ex))
+		obj.exercises = obj.exercises.map(ex => Exercise.fromJSON(app,ex))
 		let base: ExerciseBase = new ExerciseBase(app, obj);
 		await base.indexExcalidraw();
 		return base;
@@ -152,7 +150,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 				}
 				break
 			case "create":
-				if (!(ct instanceof Exercise)) this.exercises.push(...this.createNewExercise(ct));
+				if (!(ct instanceof Exercise)) this.exercises.push(...ct.map((el,index) => this.createNewExercise(el,index)));
 				// console.log(this.exercises);
 				break
 			case "delete":
@@ -212,21 +210,17 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		})
 	}
 
-	createNewExercise(exercisesLinkArray: string[]): Exercise[] {
-		return exercisesLinkArray.map((link, index) => {
-
-			return new Exercise(this.app_, {
-				source: link,
-				subject: this.subject,
-				history:[],
-				id:"",
-				state:EXERCISE_STATUSES["New"],
-				index: this.size + index,
-				remark: "",
-				start_time:0,
-				end_time:0
-			})
-		});
+	createNewExercise(linktext:ExerciseLinkText, index: number): Exercise {
+		return Exercise.fromJSON(this.app_, {
+			subject: this.subject,
+			state: EXERCISE_STATUSES.New,
+			remark: "",
+			index: index,
+			history: [],
+			id: this.getExerciseID(linktext),
+			start_time: 0,
+			end_time: 0
+		})
 	}
 
 
