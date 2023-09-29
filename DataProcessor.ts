@@ -10,6 +10,7 @@ import {getExerciseLinkText, parseFrontmatter, parseJSON} from "./src/utility/pa
 import {stringifyTOJSON} from "./src/utility/io";
 import {DayFrontmatter, StatFile} from "./StatFile";
 import {SBaseMetadata} from "./src/base_version";
+import {EXERCISE_SUBJECT} from "./src/constants";
 
 
 export const getDailyDfNameTemplate = ():string => {
@@ -36,6 +37,7 @@ export class DataProcessor{
 
 	activeExercise: Exercise | undefined;
 
+
 	private constructor(app:App, bases: {[K: string]: ExerciseBase}, statFile: StatFile) {
 		this.app_ = app;
 		this.bases = bases;
@@ -56,6 +58,7 @@ export class DataProcessor{
 			bases[subject] = exists ?
 				await ExerciseBase.read(app,EXERCISE_BASE[subject].path) :
 				await ExerciseBase.create(app,subject);
+			Object.values(bases[subject].excalidraws_).forEach(exc => ExcalidrawFile.createIDLinktextMapping(exc));
 		}
 
 		// Init StatFile

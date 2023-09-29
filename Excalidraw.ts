@@ -17,7 +17,7 @@ export interface ExcalidrawElement {
 	y:number;
 }
 
-export const EXERCISE_BOX:ExcalidrawElement = {
+export const EXERCISE_BOX: Partial<ExcalidrawElement> = {
 	strokeColor: "#846358",
 	type: "rectangle"
 }
@@ -42,6 +42,8 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 
 	previeousExerciseArray: Set<ExerciseLinkText>;
 
+	idLinktextMapping: Record<string, ExerciseLinkText>;
+
 	// 现在读取Excalidraw文件的目的只是读取其内部的Excalidraw Elements
 	static async read(app:App, path:string): Promise<ExcalidrawElement[]> {
 		// Get Excalidraw Content
@@ -55,17 +57,16 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 
 	static createIDLinktextMapping(excalidraw: ExcalidrawFile): Record<string, ExerciseLinkText>{
 		const elements = excalidraw.elements;
-		return Object.fromEntries(elements
+		excalidraw.idLinktextMapping = Object.fromEntries(elements
 			.filter(el => el.strokeColor === EXERCISE_BOX.strokeColor
 				&& el.type === EXERCISE_BOX.type && !el.isDeleted)
 			.map(el => {
 				const linktext:ExerciseLinkText = `${excalidraw.name}#^${el.id}`;
-				const id = `${Math.ceil(Math.abs(el.x) + Math.abs(el.y))}`;
+				const id = `${excalidraw.name}-${Math.ceil(Math.abs(el.x) + Math.abs(el.y))}`;
 				return [id,linktext]
 			}))
+		return excalidraw.idLinktextMapping
 	}
-
-
 
 	constructor(app:App, name:string, excalidrawFileInfo: ExcalidrawMetadata) {
 		super(app, excalidrawFileInfo.path)
