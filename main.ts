@@ -109,6 +109,7 @@ export default class MyPlugin extends Plugin {
 			.excalidraws_[fileName];
 		new Notice(`${file.name} Changed!`, 3000);
 		if (excalidrawFile) {
+			const subject = excalidrawFile.subject;
 			excalidrawFile.currentContent = await excalidrawFile.read()
 			excalidrawFile.elements = parseJSON(excalidrawFile.currentContent).elements;
 			new Notice(`Previous number of exercises in excalidrawFile file: ${excalidrawFile.previeousExerciseArray.size}\n\nCurrent number of exercises in excalidrawFile file: ${excalidrawFile.exerciseArray.size}`, 2000);
@@ -116,8 +117,9 @@ export default class MyPlugin extends Plugin {
 			const newLTArray = excalidrawFile.filterForNewExercise();
 			const deletedLTArray = excalidrawFile.filterForDeletedExercise();
 			if (newLTArray.length > 0 || deletedLTArray.length > 0) {
-				this.cpu.bases[excalidrawFile.subject].update("delete", deletedLTArray);
-				this.cpu.bases[excalidrawFile.subject].update("create",newLTArray);
+				this.cpu.bases[subject].update("delete", deletedLTArray);
+				this.cpu.bases[subject].update("create",newLTArray);
+				await this.cpu.bases[subject].save();
 				excalidrawFile.previeousExerciseArray = new Set(excalidrawFile.exerciseArray);
 			}
 		}
@@ -134,7 +136,7 @@ export default class MyPlugin extends Plugin {
 			nb.size = nb.exercises.length;
 			nb.exercises.forEach((ex)=>{ex.state === EXERCISE_STATUSES.Laser? n++ : -1})
 			nb.items_completed = n;
-			await nb.save(nb.jsonify());
+			await nb.save();
 		}
 	}
 

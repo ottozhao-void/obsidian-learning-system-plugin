@@ -1,19 +1,15 @@
 import {App, stringifyYaml, TFile, moment, Notice, normalizePath, parseYaml, addIcon} from "obsidian";
 import {
-	EXERCISE_BASE,
-	EXERCISE_STATUSES,
-	EXERCISE_SUBJECT,
-	ExerciseBase,
-	QUERY_STRATEGY,
-	SBaseData
+	EXERCISE_BASE, ExerciseBase,
 } from "./ExerciseBase";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {DataArray, getAPI, Literal, parseField} from "obsidian-dataview";
-import {Exercise, ExerciseLinkText, ExerciseMetadata_V1} from "./Exercise";
+import {Exercise, ExerciseLinkText} from "./Exercise";
 import {ExcalidrawElement, ExcalidrawFile, ExcalidrawJSON} from "./Excalidraw";
 import {getExerciseLinkText, parseFrontmatter, parseJSON} from "./src/utility/parser";
 import {stringifyTOJSON} from "./src/utility/io";
 import {DayFrontmatter, StatFile} from "./StatFile";
+import {SBaseMetadata} from "./src/base_version";
 
 
 export const getDailyDfNameTemplate = ():string => {
@@ -60,7 +56,7 @@ export class DataProcessor{
 			const exists = await app.vault.adapter.exists(path);
 			if (exists){
 				// 如果存在的话，就先读取，再初始化
-				let baseJSON: SBaseData = parseJSON(await app.vault.adapter.read(normalizePath(path)))
+				let baseJSON: SBaseMetadata = parseJSON(await app.vault.adapter.read(normalizePath(path)))
 				bases[subject] = await ExerciseBase.fromJSON(app,baseJSON);
 			}
 			else {
@@ -68,7 +64,7 @@ export class DataProcessor{
 				bases[subject] = new ExerciseBase(app, EXERCISE_BASE[subject])
 				// console.log(bases[subject]);
 				await bases[subject].initIndex();
-				await bases[subject].save(bases[subject].jsonify());
+				await bases[subject].save();
 			}
 		}
 
@@ -133,6 +129,7 @@ export class DataProcessor{
 			if (early) {
 				this.activeExercise.start_time = 0;
 				this.activeBase?.update("modify", this.activeExercise); // Save Exercises
+				await this.activeBase?.save();
 			} else {
 
 				// Update the Runtime Exercise Object
@@ -145,7 +142,9 @@ export class DataProcessor{
 
 				// Save these updates to Obsidian Notes
 				this.activeBase?.update("modify", this.activeExercise); // Save Exercises
-				console.log(this.statfile);
+
+
+				await this.activeBase?.save();
 				await this.statfile.save(); // Save StatFile
 
 				new Notice(`Start Time: ${this.activeExercise.getStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getDurationAsString()}`, 10000);

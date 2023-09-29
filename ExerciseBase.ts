@@ -123,8 +123,9 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		}, 4)}\n\`\`\``
 	}
 
-	async save(content: BaseContent): Promise<void> {
-		await this.app_.vault.adapter.write(this.path, content);
+	async save(): Promise<void> {
+		const data = this.jsonify();
+		await this.app_.vault.adapter.write(this.path, data);
 	}
 
 	static async fromJSON(app:App, obj: SBaseMetadata): Promise<ExerciseBase> {
@@ -139,8 +140,9 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		return parseJSON(content)
 	}
 
-	async update(actionType: "create" | "modify" | "delete",ct: ExerciseLinkText[] | Exercise) {
+	update(actionType: "create" | "modify" | "delete",ct: ExerciseLinkText[] | Exercise) {
 
+		// Insert new Exercises into runtime base.exercises
 		switch (actionType) {
 			case "modify":
 				if (ct instanceof Exercise){
@@ -160,15 +162,8 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 					}
 				}
 		};
-
-		// console.log(`length before: ${this.size}`);
 		this.size = this.exercises.length;
 		this.items_completed = this.calculateItemCompleted();
-		// console.log(`length after: ${this.size}`);
-		const data = this.jsonify();
-
-
-		this.app_.vault.adapter.write(this.path,data)
 
 	}
 
