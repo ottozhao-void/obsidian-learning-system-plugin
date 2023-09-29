@@ -1,16 +1,15 @@
 import {App, EventRef, Modal, normalizePath, Notice, Plugin, Setting, TAbstractFile} from 'obsidian';
 import {
 	EXERCISE_BASE,
-	EXERCISE_STATUSES,
-	EXERCISE_STATUSES_SWAPPED,
-	EXERCISE_SUBJECT,
-	ExerciseBase, SBaseData
+	ExerciseBase
 } from "./ExerciseBase";
 import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
 import {parseJSON} from "./src/utility/parser";
+import {EXERCISE_STATUSES, EXERCISE_STATUSES_SWAPPED, EXERCISE_SUBJECT} from "./src/constants";
+import {SBaseMetadata} from "./src/base_version";
 
 // Remember to rename these classes and interfaces!
 
@@ -59,7 +58,7 @@ export default class MyPlugin extends Plugin {
 			callback: async () => {
 				for (let subject of Object.keys(EXERCISE_BASE)) {
 					const path = EXERCISE_BASE[subject].path;
-					let baseJSON: SBaseData = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
+					let baseJSON: SBaseMetadata = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
 					this.cpu.bases[subject] = await ExerciseBase.fromJSON(this.app,baseJSON);
 				}
 			}
