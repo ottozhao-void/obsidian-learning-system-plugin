@@ -33,7 +33,7 @@ export class DataProcessor{
 
 	bases: {[K: string]: ExerciseBase} = {};
 
-	activeBase: ExerciseBase;
+	activeBase: ExerciseBase | undefined;
 
 	activeExercise: Exercise | undefined;
 
@@ -112,20 +112,20 @@ export class DataProcessor{
 		this.updateField(TOTAL_TIME_KEY, noe*avgTime);
 	}
 
-	async run(){
-		this.activeExercise = this.activeBase.next();
-		if (this.activeExercise){
-			const linktext = this.activeBase.
-				excalidraws_[this.activeExercise.id.split(ExcalidrawFile.id_separator)[0]]
+	async run() {
+		this.activeExercise = this.activeBase?.next();
+		if (this.activeExercise && this.activeBase) {
+			const linktext = this.activeBase
+				.excalidraws_[this.activeExercise.id.split(ExcalidrawFile.id_separator)[0]]
 				.idLinktextMapping[this.activeExercise.id];
 			this.activeExercise.start_time = moment().valueOf();
 			await this.app_.workspace.openLinkText(linktext, linktext, true);
+		} else {
+			new Notice("next() failed to find the next exercise");
 		}
-		else {
-			new Notice("next() failed to find the next exercise")
-		}
-
 	}
+
+
 
 	async closeUpCurrentExercise(early: boolean = false){
 		if (this.activeExercise) {
