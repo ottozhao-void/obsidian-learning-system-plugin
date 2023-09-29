@@ -182,7 +182,6 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 			// If no new exercises are found
 			if (newExercisesIndexes.length === 0) {
-				new Notice("No more new Exercises!");
 				return;
 			}
 			randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];

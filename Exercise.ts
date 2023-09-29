@@ -3,7 +3,7 @@ import {
 	moment, normalizePath,
 } from 'obsidian';
 import {ExerciseHistory, ExerciseMetadata_V1} from "./src/exercise_version";
-import {EXERCISE_STATUSES} from "./src/constants";
+import {EXERCISE_STATUSES, EXERCISE_SUBJECT} from "./src/constants";
 
 export type ExerciseLinkText = string;
 
@@ -39,11 +39,6 @@ export class Exercise implements ExerciseMetadata_V1{
 	static extractIdFromLink(el: ExerciseLinkText) {
 		const match = el.match(/\^\s*(\S*)/);
 		return match?.[1] || "";
-	}
-
-	start() {
-		this.start_time = moment().valueOf();
-		this.app_.workspace.openLinkText(this.source, this.source,true);
 	}
 
 	close() {
