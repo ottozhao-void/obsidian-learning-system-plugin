@@ -70,6 +70,7 @@ export default class MyPlugin extends Plugin {
 		// Using this function will automatically remove the event listener when this plugin is disabled.
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {
+				const id = btoa(unescape(encodeURIComponent("example")));
 				if(!this.cpu.activeBase) {
 					new Notice("No Base is selected!")
 					this.baseModal.open();
@@ -110,6 +111,7 @@ export default class MyPlugin extends Plugin {
 			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.POLITICS]
 			.excalidraws_[fileName];
 		new Notice(`${file.name} Changed!`, 3000);
+
 		if (excalidrawFile) {
 			const subject = excalidrawFile.subject;
 			excalidrawFile.elements = await ExcalidrawFile.read(this.app, excalidrawFile.path);

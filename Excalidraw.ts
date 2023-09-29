@@ -12,8 +12,11 @@ export interface ExcalidrawElement {
 	strokeColor:string;
 	type: string;
 	id?: string;
-	isDeleted?: boolean
+	isDeleted?: boolean;
+	x:number;
+	y:number;
 }
+
 export const EXERCISE_BOX:ExcalidrawElement = {
 	strokeColor: "#846358",
 	type: "rectangle"
@@ -45,8 +48,23 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 		const content = await app.vault.adapter.read(normalizePath(path));
 		// Parse the content for elements
 		const parsedJSONBlock = parseJSON(content) as ExcalidrawJSON;
+		// const elements = parsedJSONBlock.elements;
+		// 接下来应该有一个生成ID到linktext映射的函数
 		return parsedJSONBlock.elements;
 	}
+
+	static createIDLinktextMapping(excalidraw: ExcalidrawFile): Record<string, ExerciseLinkText>{
+		const elements = excalidraw.elements;
+		return Object.fromEntries(elements
+			.filter(el => el.strokeColor === EXERCISE_BOX.strokeColor
+				&& el.type === EXERCISE_BOX.type && !el.isDeleted)
+			.map(el => {
+				const linktext:ExerciseLinkText = `${excalidraw.name}#^${el.id}`;
+				const id = `${Math.ceil(Math.abs(el.x) + Math.abs(el.y))}`;
+				return [id,linktext]
+			}))
+	}
+
 
 
 	constructor(app:App, name:string, excalidrawFileInfo: ExcalidrawMetadata) {
@@ -54,8 +72,6 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 		this.name = name;
 		Object.assign(this,excalidrawFileInfo);
 	}
-
-
 
 
 	filterForNewExercise(): ExerciseLinkText[] {
