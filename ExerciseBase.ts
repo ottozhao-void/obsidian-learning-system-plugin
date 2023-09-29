@@ -1,15 +1,12 @@
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {DataArray, getAPI, Literal} from "obsidian-dataview";
-import {App, Component, FileSystemAdapter, normalizePath, Notice, TFile} from "obsidian";
-import {ExcalidrawElement, ExcalidrawFile, ExcalidrawJSON} from "./Excalidraw";
+import {App, normalizePath, Notice} from "obsidian";
+import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
 import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
-import {migrate_mapping} from "./src/exercise_version";
-import {BaseContent, ExerciseInitData, BaseMetadata_V0, SBaseMetadata} from "./src/base_version";
+import {BaseContent, ExerciseInitData, SBaseMetadata} from "./src/base_version";
 import {EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY} from "./src/constants";
-
-
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -103,6 +100,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	getExerciseID(linktext: ExerciseLinkText){
 		const excalidrawFileName = linktext.split("#")[0];
 		const excalidraw = this.excalidraws_[excalidrawFileName]
+		console.log(this.excalidraws_);
 		return excalidraw.linktextIDMapping[linktext];
 	}
 
@@ -161,7 +159,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 						})
 					}
 				}
-		};
+		}
 		this.size = this.exercises.length;
 		this.items_completed = this.calculateItemCompleted();
 	}
@@ -190,23 +188,45 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		}
 
 		if (randomExerciseIndex != -1){
-			const nextExercise: Exercise = this.exercises.splice(randomExerciseIndex,1)[0];
-			return nextExercise;
+			return this.exercises.splice(randomExerciseIndex, 1)[0];
 		}
 	}
 
-	static async migrateFromOBtoNB(app:App, data: ExerciseInitData): Promise<ExerciseBase>{
-		const ob: BaseMetadata_V0 = parseJSON(await app.vault.adapter.read(normalizePath(data.path)));
-		const newExercises = ob["exercises"].map((o,index) => migrate_mapping(o, index));
-		return ExerciseBase.fromJSON(app, {
-			exercises: newExercises.map(ex => new Exercise(app,ex)),
-			items_completed: 0,
-			query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
-			size:0,
-			tag: data.tag,
-			subject:data.subject,
-			path: data.path
-		})
+	// static async migrateFromOBtoNB(app:App, data: ExerciseInitData): Promise<ExerciseBase>{
+	// 	const ob: BaseMetadata_V0 = parseJSON(await app.vault.adapter.read(normalizePath(data.path)));
+	// 	const newExercises = ob["exercises"].map((o,index) => migrate_mapping(o, index));
+	// 	return ExerciseBase.fromJSON(app, {
+	// 		exercises: newExercises.map(ex => new Exercise(app,ex)),
+	// 		items_completed: 0,
+	// 		query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
+	// 		size:0,
+	// 		tag: data.tag,
+	// 		subject:data.subject,
+	// 		path: data.path
+	// 	})
+	// }
+
+	static async migrateFromOBtoNB(app:App){
+		for (let subject of Object.keys(EXERCISE_BASE)){
+			const path = EXERCISE_BASE[subject].path;
+			const base = await ExerciseBase.read(app,path);
+			const exercises = base.exercises;
+			base.exercises = exercises.map(ex => {
+				const source = ex.source;
+				const id = base.getExerciseID(source);
+				return Exercise.fromJSON(app, {
+					subject: ex.subject,
+					state: ex.state,
+					remark: ex.remark,
+					index: ex.index,
+					history: ex.history,
+					id,
+					start_time: ex.start_time,
+					end_time: ex.end_time
+				})
+			})
+			await base.save()
+		}
 	}
 
 	createNewExercise(linktext:ExerciseLinkText, index: number): Exercise {

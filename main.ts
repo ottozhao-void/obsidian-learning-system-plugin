@@ -1,15 +1,12 @@
-import {App, EventRef, Modal, normalizePath, Notice, Plugin, Setting, TAbstractFile} from 'obsidian';
+import {App, EventRef, Modal, Notice, Plugin, Setting, TAbstractFile} from 'obsidian';
 import {
-	EXERCISE_BASE,
 	ExerciseBase
 } from "./ExerciseBase";
 import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
-import {parseJSON} from "./src/utility/parser";
 import {EXERCISE_STATUSES, EXERCISE_STATUSES_SWAPPED, EXERCISE_SUBJECT} from "./src/constants";
-import {SBaseMetadata} from "./src/base_version";
 
 // Remember to rename these classes and interfaces!
 
@@ -34,6 +31,7 @@ export default class MyPlugin extends Plugin {
 		this.cpu = await DataProcessor.init(this.app);
 		this.baseModal = new BaseModal(this.app,this.cpu)
 		this.onExFileChangeRef =  this.app.vault.on("modify", this.onExcalidrawFileChange, this);
+		await ExerciseBase.migrateFromOBtoNB(this.app);
 
 
 		this.addCommand({
@@ -131,16 +129,6 @@ export default class MyPlugin extends Plugin {
 		this.app.vault.offref(this.onExFileChangeRef);
 	}
 
-	async update(){
-		for (let subject of Object.keys(EXERCISE_BASE)) {
-			let n = 0;
-			const nb = await ExerciseBase.migrateFromOBtoNB(this.app, EXERCISE_BASE[subject]);
-			nb.size = nb.exercises.length;
-			nb.exercises.forEach((ex)=>{ex.state === EXERCISE_STATUSES.Laser? n++ : -1})
-			nb.items_completed = n;
-			await nb.save();
-		}
-	}
 
 	// async loadSettings() {
 	// 	this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());

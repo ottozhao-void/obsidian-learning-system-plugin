@@ -1,14 +1,14 @@
 import {
 	App,
-	moment, normalizePath,
+	moment,
 } from 'obsidian';
-import {ExerciseHistory, ExerciseMetadata_V1} from "./src/exercise_version";
-import {EXERCISE_STATUSES, EXERCISE_SUBJECT} from "./src/constants";
+import {ExerciseHistory, ExerciseMetadata_Latest} from "./src/exercise_version";
+import {EXERCISE_STATUSES} from "./src/constants";
 
 export type ExerciseLinkText = string;
 
 
-export class Exercise implements ExerciseMetadata_V1{
+export class Exercise implements ExerciseMetadata_Latest{
 	app_:App;
 
 	// source: ExerciseLinkText;
@@ -30,7 +30,7 @@ export class Exercise implements ExerciseMetadata_V1{
 
 	end_time: number;
 
-	constructor(app:App, exerciseInfo: ExerciseMetadata_V1) {
+	constructor(app:App, exerciseInfo: ExerciseMetadata_Latest) {
 		Object.assign(this,exerciseInfo)
 		this.app_ = app
 		this.history = exerciseInfo?.history || [];
@@ -87,7 +87,7 @@ export class Exercise implements ExerciseMetadata_V1{
 		return `[[${this.source}]]`
 	}
 
-	static fromJSON(app:App, data: ExerciseMetadata_V1): Exercise {
+	static fromJSON(app:App, data: ExerciseMetadata_Latest): Exercise {
 		return new Exercise(app, data)
 	}
 

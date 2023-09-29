@@ -10,7 +10,8 @@ export interface ExerciseMetadata_V0 {
 }
 
 export interface ExerciseMetadata_V1 {
-	// source: string; // Link is in the format of Obsidian LinkText
+
+	source: string; // Link is in the format of Obsidian LinkText
 
 	id:string;
 
@@ -30,8 +31,29 @@ export interface ExerciseMetadata_V1 {
 
 }
 
-
 export interface ExerciseMetadata_V2 {
+
+	id:string;
+
+	index: number;
+
+	subject: string;
+
+	state: EXERCISE_STATUSES // The state refers to the latest state of the exercise (state of the last ExerciseHistory)
+
+	start_time: number;
+
+	end_time: number;
+
+	remark: string;
+
+	history: ExerciseHistory[];
+
+}
+
+export type ExerciseMetadata_Latest = ExerciseMetadata_V2
+
+export interface ExerciseMetadata_V3 {
 	//TODO 需要给每个Exercise增加一个keyword的Property,帮助更好的分类这个题目
 	// keywords: string[]
 
@@ -66,7 +88,7 @@ export interface ExerciseHistory {
 }
 
 
-export function migrate_mapping(oj: ExerciseMetadata_V0, index: number): ExerciseMetadata_V1{
+export function migrate_mapping(oj: ExerciseMetadata_V0, index: number): ExerciseMetadata_Latest{
 	return {
 		// source: oj["link"],
 		subject: oj["type"],
