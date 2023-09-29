@@ -75,16 +75,11 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	async indexExcalidraw(){
 		const targetExcalidrawPages: DataArray<Record<string, Literal>> = this.dataViewAPI_?.pages(this.tag) as DataArray<Record<string, Literal>>;
 		for (let page of targetExcalidrawPages){
-			const content = await this.app_.vault.adapter.read(normalizePath(page.file.path));
-			const parsedJSONBlock = parseJSON(content) as ExcalidrawJSON;
-			const elements: ExcalidrawElement[] = parsedJSONBlock.elements;
-
 
 			this.excalidraws_[page.file.name] = new ExcalidrawFile(this.app_,page.file.name,{
 				subject: this.subject,
 				path: page.file.path,
-				elements,
-				currentContent:content
+				elements: await ExcalidrawFile.read(this.app_,page.file.path)
 			})
 			this.excalidraws_[page.file.name].previeousExerciseArray = this.excalidraws_[page.file.name].exerciseArray;
 		}
@@ -92,10 +87,10 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	async initIndex(){
 		// Index Excalidraw Files
-		this.indexExcalidraw();
+		await this.indexExcalidraw();
 
 		// Index Exercises
-		const exerciseLinkArray = Object.values(this.excalidraws_).flatMap((excal) => getExerciseLinkText(excal))
+		const exerciseLinkArray = Object.values(this.excalidraws_).flatMap((excal) => getExerciseLinkText(excal));
 
 		this.exercises.push(...exerciseLinkArray.map((el,index) => Exercise.fromJSON(this.app_, {
 			source: el,
@@ -128,6 +123,18 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		await this.app_.vault.adapter.write(this.path, data);
 	}
 
+	static async read(app:App, path:string): Promise<ExerciseBase>{
+		let baseJSON: SBaseMetadata = parseJSON(await app.vault.adapter.read(normalizePath(path)))
+		return await ExerciseBase.fromJSON(app, baseJSON);
+	}
+
+	static async create(app:App, subject: string): Promise<ExerciseBase>{
+		const base = new ExerciseBase(app, EXERCISE_BASE[subject])
+		await base.initIndex();
+		await base.save();
+		return base;
+	}
+
 	static async fromJSON(app:App, obj: SBaseMetadata): Promise<ExerciseBase> {
 		obj.exercises = obj.exercises.map(ex => new Exercise(app,ex))
 		let base: ExerciseBase = new ExerciseBase(app, obj);
@@ -135,12 +142,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		return base;
 	}
 
-	static parseJSONFromPath: (app:App, path:string) => Promise<SBaseMetadata> = async (app,path) => {
-		const content = await app.vault.adapter.read(path);
-		return parseJSON(content)
-	}
-
-	update(actionType: "create" | "modify" | "delete",ct: ExerciseLinkText[] | Exercise) {
+	updateRuntimeBase(actionType: "create" | "modify" | "delete", ct: ExerciseLinkText[] | Exercise) {
 
 		// Insert new Exercises into runtime base.exercises
 		switch (actionType) {
@@ -164,7 +166,6 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		};
 		this.size = this.exercises.length;
 		this.items_completed = this.calculateItemCompleted();
-
 	}
 
 	calculateItemCompleted(): number{
@@ -186,7 +187,6 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 				new Notice("No more new Exercises!");
 				return;
 			}
-			console.log(this.exercises);
 			randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
 			new Notice(`Exercise at ${randomExerciseIndex} is being pulled out.`,3000);
 

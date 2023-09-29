@@ -13,8 +13,7 @@ export function parseJSON(content:string): any {
 }
 
 export function getExerciseLinkText(excalidraw: ExcalidrawFile): ExerciseLinkText[] {
-	let elements: ExcalidrawElement[] = excalidraw.elements;;
-
+	let elements: ExcalidrawElement[] = excalidraw.elements;
 	return elements
 		.filter(el => el.strokeColor === EXERCISE_BOX.strokeColor
 			&& el.type === EXERCISE_BOX.type && !el.isDeleted)

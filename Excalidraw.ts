@@ -1,4 +1,4 @@
-import {App, EventRef, Notice, TAbstractFile, TFile} from "obsidian";
+import {App, EventRef, normalizePath, Notice, TAbstractFile, TFile} from "obsidian";
 import {GenericFile} from "./GenericFile";
 import {ExerciseBase} from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
@@ -33,13 +33,20 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 
 	name:string
 
-	currentContent: string;
-
 	elements: ExcalidrawElement[];
 
 	path: string;
 
 	previeousExerciseArray: Set<ExerciseLinkText>;
+
+	// 现在读取Excalidraw文件的目的只是读取其内部的Excalidraw Elements
+	static async read(app:App, path:string): Promise<ExcalidrawElement[]> {
+		// Get Excalidraw Content
+		const content = await app.vault.adapter.read(normalizePath(path));
+		// Parse the content for elements
+		const parsedJSONBlock = parseJSON(content) as ExcalidrawJSON;
+		return parsedJSONBlock.elements;
+	}
 
 
 	constructor(app:App, name:string, excalidrawFileInfo: ExcalidrawMetadata) {
@@ -48,14 +55,8 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 		Object.assign(this,excalidrawFileInfo);
 	}
 
-	async initilize() {
-		try {
-			this.currentContent = await this.read();
-			this.elements = parseJSON(this.currentContent).elements;
-		} catch (error) {
-			console.error('Error during initialization:', error);
-		}
-	}
+
+
 
 	filterForNewExercise(): ExerciseLinkText[] {
 		return Array.from(this.exerciseArray).filter(ex => !this.previeousExerciseArray.has(ex));

@@ -52,17 +52,19 @@ export default class MyPlugin extends Plugin {
 			}
 		})
 
-		this.addCommand({
-			id: "reload-all-bases",
-			name: "Reload All Bases",
-			callback: async () => {
-				for (let subject of Object.keys(EXERCISE_BASE)) {
-					const path = EXERCISE_BASE[subject].path;
-					let baseJSON: SBaseMetadata = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
-					this.cpu.bases[subject] = await ExerciseBase.fromJSON(this.app,baseJSON);
-				}
-			}
-		})
+		//  这个reload all bases的目的是为了在直接修改了库文件后，保证库文件的修改可以及时
+		// 反馈到Runtime Base里面，但这个有必要吗？ 因为，我决定以后只能通过修改Runtime Base，
+		// this.addCommand({
+		// 	id: "reload-all-bases",
+		// 	name: "Reload All Bases",
+		// 	callback: async () => {
+		// 		for (let subject of Object.keys(EXERCISE_BASE)) {
+		// 			const path = EXERCISE_BASE[subject].path;
+		// 			let baseJSON: SBaseMetadata = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
+		// 			this.cpu.bases[subject] = await ExerciseBase.fromJSON(this.app,baseJSON);
+		// 		}
+		// 	}
+		// })
 
 		// If the plugin hooks up any global DOM events (on parts of the app_ that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -95,7 +97,7 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(async () => {console.log(this.cpu.bases)}, 3 * 1000));
+		// this.registerInterval(window.setInterval(async () => {console.log(this.cpu.bases)}, 3 * 1000));
 	}
 
 	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
@@ -110,15 +112,14 @@ export default class MyPlugin extends Plugin {
 		new Notice(`${file.name} Changed!`, 3000);
 		if (excalidrawFile) {
 			const subject = excalidrawFile.subject;
-			excalidrawFile.currentContent = await excalidrawFile.read()
-			excalidrawFile.elements = parseJSON(excalidrawFile.currentContent).elements;
+			excalidrawFile.elements = await ExcalidrawFile.read(this.app, excalidrawFile.path);
 			new Notice(`Previous number of exercises in excalidrawFile file: ${excalidrawFile.previeousExerciseArray.size}\n\nCurrent number of exercises in excalidrawFile file: ${excalidrawFile.exerciseArray.size}`, 2000);
 
 			const newLTArray = excalidrawFile.filterForNewExercise();
 			const deletedLTArray = excalidrawFile.filterForDeletedExercise();
 			if (newLTArray.length > 0 || deletedLTArray.length > 0) {
-				this.cpu.bases[subject].update("delete", deletedLTArray);
-				this.cpu.bases[subject].update("create",newLTArray);
+				this.cpu.bases[subject].updateRuntimeBase("delete", deletedLTArray);
+				this.cpu.bases[subject].updateRuntimeBase("create",newLTArray);
 				await this.cpu.bases[subject].save();
 				excalidrawFile.previeousExerciseArray = new Set(excalidrawFile.exerciseArray);
 			}

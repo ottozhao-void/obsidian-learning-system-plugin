@@ -52,20 +52,10 @@ export class DataProcessor{
 		// Init Exercise Base
 		let bases: {[K: string]: ExerciseBase} = {};
 		for (let subject of Object.keys(EXERCISE_BASE)) {
-			const {path, tag} = EXERCISE_BASE[subject];
-			const exists = await app.vault.adapter.exists(path);
-			if (exists){
-				// 如果存在的话，就先读取，再初始化
-				let baseJSON: SBaseMetadata = parseJSON(await app.vault.adapter.read(normalizePath(path)))
-				bases[subject] = await ExerciseBase.fromJSON(app,baseJSON);
-			}
-			else {
-				// 如果不存在的话，就先创造初始化，再写入
-				bases[subject] = new ExerciseBase(app, EXERCISE_BASE[subject])
-				// console.log(bases[subject]);
-				await bases[subject].initIndex();
-				await bases[subject].save();
-			}
+			const exists = await app.vault.adapter.exists(EXERCISE_BASE[subject].path);
+			bases[subject] = exists ?
+				await ExerciseBase.read(app,EXERCISE_BASE[subject].path) :
+				await ExerciseBase.create(app,subject);
 		}
 
 		// Init StatFile
@@ -128,7 +118,7 @@ export class DataProcessor{
 		if (this.activeExercise) {
 			if (early) {
 				this.activeExercise.start_time = 0;
-				this.activeBase?.update("modify", this.activeExercise); // Save Exercises
+				this.activeBase?.updateRuntimeBase("modify", this.activeExercise); // Save Exercises
 				await this.activeBase?.save();
 			} else {
 
@@ -141,7 +131,7 @@ export class DataProcessor{
 				await this.calculateTimeSpentOnSubjectForTheDay();
 
 				// Save these updates to Obsidian Notes
-				this.activeBase?.update("modify", this.activeExercise); // Save Exercises
+				this.activeBase?.updateRuntimeBase("modify", this.activeExercise); // Save Exercises
 
 
 				await this.activeBase?.save();
