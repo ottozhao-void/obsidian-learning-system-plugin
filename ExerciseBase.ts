@@ -137,6 +137,10 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		return base;
 	}
 
+	reIndexExercise(){
+		this.exercises.forEach((ex,index) => {ex.index = index})
+	}
+
 	updateRuntimeBase(actionType: "create" | "modify" | "delete", ct: ExerciseLinkText[] | Exercise) {
 
 		// Insert new Exercises into runtime base.exercises

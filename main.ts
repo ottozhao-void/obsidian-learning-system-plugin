@@ -1,7 +1,4 @@
 import {App, EventRef, Modal, Notice, Plugin, Setting, TAbstractFile} from 'obsidian';
-import {
-	ExerciseBase
-} from "./ExerciseBase";
 import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
@@ -45,6 +42,19 @@ export default class MyPlugin extends Plugin {
 			name: "Close Base",
 			callback: () => {
 				this.cpu.activeBase = undefined;
+			}
+		})
+
+		this.addCommand({
+			id: "reindex-allexercises",
+			name: "index exercise",
+			callback: () => {
+				console.log("Index begins!")
+				Object.values(this.cpu.bases).forEach((base) => {base.reIndexExercise()});
+				console.log("Index completed")
+				console.log("Writing to file.....")
+				Object.values(this.cpu.bases).forEach((base) => {base.save()});
+
 			}
 		})
 
