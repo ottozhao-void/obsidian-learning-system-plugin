@@ -4,6 +4,7 @@ import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
 import {EXERCISE_STATUSES, EXERCISE_STATUSES_SWAPPED, EXERCISE_SUBJECT} from "./src/constants";
+import {AssessModal, BaseModal, DeleteExerciseModal} from "./src/Modal";
 
 // Remember to rename these classes and interfaces!
 
@@ -22,6 +23,7 @@ export default class MyPlugin extends Plugin {
 
 	dataviewAPI: DataviewApi | undefined = getAPI(this.app);
 
+	deleteExerciseID: string
 
 	async onload() {
 		// await this.loadSettings();
@@ -48,13 +50,17 @@ export default class MyPlugin extends Plugin {
 		this.addCommand({
 			id: "reindex-allexercises",
 			name: "index exercise",
-			callback: () => {
-				console.log("Index begins!")
+			callback: async () => {
 				Object.values(this.cpu.bases).forEach((base) => {base.reIndexExercise()});
-				console.log("Index completed")
-				console.log("Writing to file.....")
-				Object.values(this.cpu.bases).forEach((base) => {base.save()});
+				await Promise.all(Object.values(this.cpu.bases).map(base => base.save()));
+			}
+		})
 
+		this.addCommand({
+			id: "delete-exercise",
+			name: "Delete Exercise",
+			callback: () => {
+				new DeleteExerciseModal(this.app, this).open();
 			}
 		})
 
@@ -124,6 +130,10 @@ export default class MyPlugin extends Plugin {
 
 			const newLTArray = excalidrawFile.filterForNewExercise();
 			const deletedLTArray = excalidrawFile.filterForDeletedExercise();
+
+			// update the id-link mapping
+			ExcalidrawFile.createIDLinktextMapping(excalidrawFile);
+
 			if (newLTArray.length > 0 || deletedLTArray.length > 0) {
 				this.cpu.bases[subject].updateRuntimeBase("delete", deletedLTArray);
 				this.cpu.bases[subject].updateRuntimeBase("create",newLTArray);
@@ -148,118 +158,7 @@ export default class MyPlugin extends Plugin {
 
 }
 
-export class AssessModal extends Modal {
-	status: EXERCISE_STATUSES;
-	cpu: DataProcessor
-	remark: string;
 
-	constructor(app:App,cpu: DataProcessor) {
-		super(app);
-		this.cpu = cpu;
-	}
-
-	onOpen() {
-
-		this.contentEl.createEl("h1",{text:"Assess"})
-
-		// Set Status
-		new Setting(this.contentEl)
-			.addDropdown(dp => {
-				dp.addOptions(EXERCISE_STATUSES_SWAPPED);
-				this.status = dp.getValue() as EXERCISE_STATUSES;
-				dp
-					.onChange(v => {
-					this.status = v as EXERCISE_STATUSES;
-				})
-
-			});
-
-		// Set Remark
-		new Setting(this.contentEl)
-			.setName("Exercise Summary")
-			.setDesc("You can write down your brilliant ideas about this exercise")
-			.addTextArea(ta => {
-				ta
-					.onChange(v => {
-						this.remark = v
-					})
-			})
-
-		// Close Button
-		new Setting(this.contentEl)
-			.addButton(bt => {
-				bt
-					.setButtonText("Confirm")
-					.setCta()
-					.onClick(()=>{
-						if (this.cpu.activeExercise){
-							this.cpu.activeExercise?.setStatus(this.status);
-							this.cpu.activeExercise?.setRemark(this.remark);
-							this.cpu.closeUpCurrentExercise();
-							this.close();
-						}
-					})
-			})
-
-		new Setting(this.contentEl)
-			.addButton(bt => {
-				bt
-					.setButtonText("Quit Exercise Without Saving")
-					.setCta()
-					.onClick(() => {
-						this.cpu.closeUpCurrentExercise(true);
-						this.close();
-					})
-			})
-
-	}
-
-	onClose() {
-		this.contentEl.empty();
-	}
-}
-export class BaseModal extends Modal {
-	cpu: DataProcessor;
-	cv:string;
-
-	constructor(app: App, cpu:DataProcessor){
-		super(app);
-		this.cpu = cpu;
-	}
-
-	onOpen() {
-		this.contentEl.createEl("h1",{text:"Exercise Base Selection"})
-
-		new Setting(this.contentEl)
-			.addDropdown((dp => {
-				this.cv = dp
-					.addOptions(Object.values(EXERCISE_SUBJECT).reduce<Record<string, string>>(
-						(acc,item)=>{
-						acc[item] = item;
-						return acc;
-					}, {})).getValue();
-
-				dp
-					.onChange(v => {
-						this.cv	 = v
-					})
-			}))
-
-		new Setting(this.contentEl)
-			.addButton(bt => {
-				bt
-					.setCta()
-					.setButtonText("Confirm")
-					.onClick(()=>{
-						this.cpu.activeBase = this.cpu.bases[this.cv];
-						this.close();
-					})
-			})
-	}
-	onClose() {
-		this.contentEl.empty();
-	}
-}
 
 // class SampleSettingTab extends PluginSettingTab {
 // 	plugin: MyPlugin;

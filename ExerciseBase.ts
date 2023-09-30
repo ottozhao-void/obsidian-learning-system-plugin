@@ -137,6 +137,11 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		return base;
 	}
 
+	static async deleteExerciseFromBaseFile(base:ExerciseBase, id: string){
+		base.exercises = base.exercises.filter(ex => ex.id !== id);
+		await base.save()
+	}
+
 	reIndexExercise(){
 		this.exercises.forEach((ex,index) => {ex.index = index})
 	}
