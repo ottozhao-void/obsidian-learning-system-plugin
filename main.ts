@@ -64,6 +64,17 @@ export default class MyPlugin extends Plugin {
 			}
 		})
 
+		this.addCommand({
+			id: "fixture-all-exercises",
+			name: "Fixture all exercise",
+			callback: async ()=> {
+				for (const base of Object.values(this.cpu.bases)) {
+					await Promise.all(Object.values(base.excalidraws_).map(excal => ExcalidrawFile.fixureAllExercise(this.app,excal)));
+				}
+				// await ExcalidrawFile.save(this.app,this.cpu.bases["Math"].excalidraws_["Math"])
+		}
+		})
+
 		//  这个reload all bases的目的是为了在直接修改了库文件后，保证库文件的修改可以及时
 		// 反馈到Runtime Base里面，但这个有必要吗？ 因为，我决定以后只能通过修改Runtime Base，
 		// this.addCommand({

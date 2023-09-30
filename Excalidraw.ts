@@ -53,8 +53,6 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 		const content = await app.vault.adapter.read(normalizePath(path));
 		// Parse the content for elements
 		const parsedJSONBlock = parseJSON(content) as ExcalidrawJSON;
-		// const elements = parsedJSONBlock.elements;
-		// 接下来应该有一个生成ID到linktext映射的函数
 		return parsedJSONBlock.elements;
 	}
 
@@ -70,6 +68,12 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 			}))
 
 		return excalidraw.idLinktextMapping
+	}
+
+	static async fixureAllExercise(app:App, excalidraw: ExcalidrawFile){
+		const content = await app.vault.adapter.read(normalizePath(excalidraw.path));
+		const modifiedData = content.replace(/"locked"\s*:\s*false/g, '"locked": true');
+		await app.vault.adapter.write(normalizePath(excalidraw.path), modifiedData);
 	}
 
 	constructor(app:App, name:string, excalidrawFileInfo: ExcalidrawMetadata) {
