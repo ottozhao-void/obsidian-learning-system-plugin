@@ -139,6 +139,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	static async deleteExerciseFromBaseFile(base:ExerciseBase, id: string){
 		base.exercises = base.exercises.filter(ex => ex.id !== id);
+		base.size = base.exercises.length;
 		await base.save()
 	}
 
@@ -161,9 +162,9 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 				break
 			case "delete":
 				if (Array.isArray(ct)){
-					for (let elt of ct) {
+					for (let id of ct) {
 						this.exercises.forEach((ex, index) => {
-							if (ex.source == elt) this.exercises.splice(index,1);
+							if (ex.id == id) this.exercises.splice(index,1);
 						})
 					}
 				}

@@ -1,9 +1,9 @@
-import {App, EventRef, Modal, Notice, Plugin, Setting, TAbstractFile} from 'obsidian';
+import {EventRef, Notice, Plugin, TAbstractFile} from 'obsidian';
 import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
-import {EXERCISE_STATUSES, EXERCISE_STATUSES_SWAPPED, EXERCISE_SUBJECT} from "./src/constants";
+import {EXERCISE_SUBJECT} from "./src/constants";
 import {AssessModal, BaseModal, DeleteExerciseModal} from "./src/Modal";
 
 // Remember to rename these classes and interfaces!
@@ -140,7 +140,7 @@ export default class MyPlugin extends Plugin {
 			new Notice(`Previous number of exercises in excalidrawFile file: ${excalidrawFile.previeousExerciseArray.size}\n\nCurrent number of exercises in excalidrawFile file: ${excalidrawFile.exerciseArray.size}`, 2000);
 
 			const newLTArray = excalidrawFile.filterForNewExercise();
-			const deletedLTArray = excalidrawFile.filterForDeletedExercise();
+			const deletedLTArray = excalidrawFile.filterForDeletedExercise().map(linktext => excalidrawFile.linktextIDMapping[linktext]);
 
 			// update the id-link mapping
 			ExcalidrawFile.createIDLinktextMapping(excalidrawFile);
