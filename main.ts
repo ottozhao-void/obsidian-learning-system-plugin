@@ -127,13 +127,13 @@ export default class MyPlugin extends Plugin {
 		// console.log(`${file.name} Changed!`);
 		const tFile = this.app.metadataCache.getFirstLinkpathDest(file.path,file.path);
 		const fileName = tFile?.basename ? tFile?.basename : "";
-		new Notice("picking out changed excalidraw file",3000);
+		// new Notice("picking out changed excalidraw file",3000);
 		const excalidrawFile: ExcalidrawFile | undefined = this.cpu.bases[EXERCISE_SUBJECT.MATH]
 			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.DSP]
 			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.POLITICS]
 			.excalidraws_[fileName];
-		new Notice(`${file.name} Changed!`, 3000);
-
+		// new Notice(`${file.name} Changed!`, 3000);
+		new Notice(`Type of the excalidraw file being pulled out is ${typeof excalidrawFile}`);
 		if (excalidrawFile) {
 			const subject = excalidrawFile.subject;
 			excalidrawFile.elements = await ExcalidrawFile.read(this.app, excalidrawFile.path);
