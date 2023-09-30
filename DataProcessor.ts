@@ -155,7 +155,7 @@ export class DataProcessor{
 			}
 		}
 		this.activeExercise = undefined;
-
+		Object.values(this.bases[(this.activeBase as ExerciseBase).subject].excalidraws_).forEach(exc => ExcalidrawFile.createIDLinktextMapping(exc));
 	}
 
 }

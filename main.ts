@@ -31,8 +31,6 @@ export default class MyPlugin extends Plugin {
 		this.cpu = await DataProcessor.init(this.app);
 		this.baseModal = new BaseModal(this.app,this.cpu)
 		this.onExFileChangeRef =  this.app.vault.on("modify", this.onExcalidrawFileChange, this);
-		await ExerciseBase.migrateFromOBtoNB(this.app);
-
 
 		this.addCommand({
 			id: "switch-base",

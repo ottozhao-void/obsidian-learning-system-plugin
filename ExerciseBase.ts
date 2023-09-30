@@ -100,7 +100,6 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	getExerciseID(linktext: ExerciseLinkText){
 		const excalidrawFileName = linktext.split("#")[0];
 		const excalidraw = this.excalidraws_[excalidrawFileName]
-		console.log(this.excalidraws_);
 		return excalidraw.linktextIDMapping[linktext];
 	}
 
@@ -191,20 +190,6 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 			return this.exercises.splice(randomExerciseIndex, 1)[0];
 		}
 	}
-
-	// static async migrateFromOBtoNB(app:App, data: ExerciseInitData): Promise<ExerciseBase>{
-	// 	const ob: BaseMetadata_V0 = parseJSON(await app.vault.adapter.read(normalizePath(data.path)));
-	// 	const newExercises = ob["exercises"].map((o,index) => migrate_mapping(o, index));
-	// 	return ExerciseBase.fromJSON(app, {
-	// 		exercises: newExercises.map(ex => new Exercise(app,ex)),
-	// 		items_completed: 0,
-	// 		query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
-	// 		size:0,
-	// 		tag: data.tag,
-	// 		subject:data.subject,
-	// 		path: data.path
-	// 	})
-	// }
 
 	static async migrateFromOBtoNB(app:App){
 		for (let subject of Object.keys(EXERCISE_BASE)){
