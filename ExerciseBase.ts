@@ -91,7 +91,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		// Index Exercises
 		const exerciseLinkArray = Object.values(this.excalidraws_).flatMap((excal) => getExerciseLinkText(excal));
 
-		this.exercises.push(...exerciseLinkArray.map((el,index) => this.createNewExercise(el,index)))
+		this.exercises.push(...exerciseLinkArray.map((el,index) => this.createNewExercise(el,index, 0)))
 
 		this.size = this.exercises.length;
 		this.items_completed = 0;
@@ -157,7 +157,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 				}
 				break
 			case "create":
-				if (!(ct instanceof Exercise)) this.exercises.push(...ct.map((el,index) => this.createNewExercise(el,index)));
+				if (!(ct instanceof Exercise)) this.exercises.push(...ct.map((el,index) => this.createNewExercise(el,index, this.size)));
 				// console.log(this.exercises);
 				break
 			case "delete":
@@ -224,12 +224,12 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		}
 	}
 
-	createNewExercise(linktext:ExerciseLinkText, index: number): Exercise {
+	createNewExercise(linktext:ExerciseLinkText, index: number,size: number): Exercise {
 		return Exercise.fromJSON(this.app_, {
 			subject: this.subject,
 			state: EXERCISE_STATUSES.New,
 			remark: "",
-			index: index,
+			index: size + index,
 			history: [],
 			id: this.getExerciseID(linktext),
 			start_time: 0,
