@@ -3,9 +3,8 @@ import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
-import {EXERCISE_SUBJECT} from "./src/constants";
+import {EXERCISE_BASE, EXERCISE_SUBJECT} from "./src/constants";
 import {AssessModal, BaseModal, DeleteExerciseModal} from "./src/Modal";
-import {EXERCISE_BASE} from "./ExerciseBase";
 
 // Remember to rename these classes and interfaces!
 

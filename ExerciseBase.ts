@@ -6,35 +6,13 @@ import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
 import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
 import {BaseContent, ExerciseInitData, SBaseMetadata} from "./src/base_version";
-import {EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY} from "./src/constants";
+import {EXERCISE_BASE, EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY} from "./src/constants";
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
 // 	[K in keyof T as T[K]]: K
 // }
 
-
-
-export const EXERCISE_BASE: Record<string, ExerciseInitData> = {
-	[EXERCISE_SUBJECT.MATH]: {
-		path: normalizePath("Exercise Base - Math.md"),
-		tag: "#excalidraw/math",
-		subject: "Math",
-		query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
-	},
-	[EXERCISE_SUBJECT.DSP]: {
-		path: normalizePath("Exercise Base - DSP.md"),
-		tag:"#excalidraw/signals_and_systems",
-		subject: "DSP",
-		query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
-	},
-	[EXERCISE_SUBJECT.POLITICS]: {
-		path: normalizePath("Exercise Base - Politics.md"),
-		tag:"#excalidraw/政治",
-		subject: "Politics",
-		query_strategy: QUERY_STRATEGY.NEW_EXERCISE_FIRST,
-	}
-}
 // export const EXERCISE_SUBJECT: string[] = Object.keys(EXERCISE_BASE);
 
 
