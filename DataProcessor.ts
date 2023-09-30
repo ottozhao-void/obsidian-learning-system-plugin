@@ -118,6 +118,9 @@ export class DataProcessor{
 			const linktext = this.activeBase
 				.excalidraws_[this.activeExercise.id.split(ExcalidrawFile.id_separator)[0]]
 				.idLinktextMapping[this.activeExercise.id];
+			// This If statement checks for exercises already created but their posistion are changed accidentally
+			// resulting in the change of their id and fail to retrieve their linktext.
+			if (linktext == undefined) new Notice(`There is no matched Linktext for exercise with id: ${this.activeExercise.id}`)
 			this.activeExercise.start_time = moment().valueOf();
 			await this.app_.workspace.openLinkText(linktext, linktext, true);
 		} else {

@@ -5,6 +5,7 @@ import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
 import {EXERCISE_SUBJECT} from "./src/constants";
 import {AssessModal, BaseModal, DeleteExerciseModal} from "./src/Modal";
+import {EXERCISE_BASE} from "./ExerciseBase";
 
 // Remember to rename these classes and interfaces!
 
@@ -19,7 +20,9 @@ export default class MyPlugin extends Plugin {
 
 	baseModal: BaseModal;
 
-	onExFileChangeRef: EventRef;
+	onExFileModifyRef: EventRef;
+
+	onExFileRenameRef: EventRef;
 
 	dataviewAPI: DataviewApi | undefined = getAPI(this.app);
 
@@ -29,7 +32,8 @@ export default class MyPlugin extends Plugin {
 		// await this.loadSettings();
 		this.cpu = await DataProcessor.init(this.app);
 		this.baseModal = new BaseModal(this.app,this.cpu)
-		this.onExFileChangeRef =  this.app.vault.on("modify", this.onExcalidrawFileChange, this);
+		this.onExFileModifyRef =  this.app.vault.on("modify", this.onExcalidrawFileModify, this);
+		this.onExFileRenameRef = this.app.vault.on("rename",this.onExcalidrawFileRename,this);
 
 		this.addCommand({
 			id: "switch-base",
@@ -123,7 +127,7 @@ export default class MyPlugin extends Plugin {
 		// this.registerInterval(window.setInterval(async () => {console.log(this.cpu.bases)}, 3 * 1000));
 	}
 
-	private async onExcalidrawFileChange(file: TAbstractFile): Promise<void> {
+	private async onExcalidrawFileModify(file: TAbstractFile): Promise<void> {
 		// console.log(`${file.name} Changed!`);
 		const tFile = this.app.metadataCache.getFirstLinkpathDest(file.path,file.path);
 		const fileName = tFile?.basename ? tFile?.basename : "";
@@ -154,8 +158,19 @@ export default class MyPlugin extends Plugin {
 		}
 	}
 
+	private onExcalidrawFileRename(file:TAbstractFile) {
+		// @ts-ignore
+		const page: {tags: string[]} = this.dataviewAPI?.page(file.path)
+		if (page.tags.join("-").contains("excalidraw")){
+			for (let subject of Object.keys(EXERCISE_BASE)) {
+				this.cpu.bases[subject].indexExcalidraw();
+			}
+		}
+	}
+
 	onunload() {
-		this.app.vault.offref(this.onExFileChangeRef);
+		this.app.vault.offref(this.onExFileModifyRef);
+		this.app.vault.offref(this.onExFileRenameRef);
 	}
 
 
