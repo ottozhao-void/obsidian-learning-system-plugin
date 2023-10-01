@@ -1,6 +1,6 @@
 import {ExerciseMetadata_V0} from "./exercise_version";
 import {Exercise} from "../Exercise";
-import {QUERY_STRATEGY} from "./constants";
+import {QUERY_STRATEGY, SUBJECTS} from "./constants";
 
 export type BaseMetadata_V0 = {
 	exercises: ExerciseMetadata_V0[]
@@ -8,7 +8,7 @@ export type BaseMetadata_V0 = {
 
 
 export interface BaseMetadata_V1 {
-	subject:string;
+	subject:SUBJECTS;
 	path: string;
 	size: number;
 	tag: string;

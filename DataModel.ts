@@ -4,6 +4,7 @@ import {EXERCISE_SUBJECT, GEE_EXERCISE_NUMBER, SUBJECTS} from "./src/constants";
 import {DataFile} from "./DataFile";
 import {DayMetadata_Latest, SubjectMetadata} from "./src/dailyData_version";
 import {parseFrontmatter} from "./src/utility/parser";
+import {ExerciseBase} from "./ExerciseBase";
 
 type FieldValue = number | number[];
 type TargetNumber = number;
@@ -13,21 +14,25 @@ type Minute = number;
 
 export class DataModel {
 
-	data: DayMetadata_Latest
+	data: DataFile
 	activeSubject: SUBJECTS;
 	activeSubjectMetadata: SubjectMetadata;
 	filePath:string;
 
 
-	static async init(app:App, filePath: string): Promise<DataModel> {
-		const dataYaml: DayMetadata_Latest = await parseFrontmatter(app, filePath);
-		if (!dataYaml) {
-			const error = new Error(`Fails to read data yaml from file ${filePath}`);
-			console.error(error);
-		}
-
+	static async init(app:App, filePath: string, bases: {[K: string]: ExerciseBase}): Promise<DataModel> {
+		const exists = await app.vault.adapter.exists(filePath);
 		const model = new DataModel();
-		model.data = new DataFile(app,dataYaml);
+
+		model.data = exists ?
+			new DataFile(app,await parseFrontmatter(app, filePath))
+			: await (async ()=>{
+				const data = new DataFile(app)
+				data.setBaseInfo(bases);
+				await data.save();
+				return data
+			})();
+
 		model.filePath = filePath;
 
 		return model;
@@ -50,6 +55,7 @@ export class DataModel {
 
 	update(timeCost: Minute){
 		// To increase the count of exercise completed
+
 		this.activeSubjectMetadata.count ++;
 
 		// To add the time cost of the new exercise to the array
@@ -63,23 +69,31 @@ export class DataModel {
 
 		// 累计做过的题目量，这个或许不需要单独计算，只需要到时候用tracker画图时， 将acc字段设为true即可
 
-		this.activeSubjectMetadata.targetNumber = this.activeSubjectMetadata.baseSize / this.data.plan;
+		// this.activeSubjectMetadata.targetNumber = this.activeSubjectMetadata.baseSize / this.data.plan;
+		//
+		// this.activeSubjectMetadata.dayProgress = this.activeSubjectMetadata.count / this.activeSubjectMetadata.targetNumber;
+		//
+		// this.activeSubjectMetadata.subjectProgress = this.activeSubjectMetadata.laser / this.activeSubjectMetadata.subjectProgress;
+		//
+		// this.activeSubjectMetadata.examAbility =
+		// 	this.activeSubject == EXERCISE_SUBJECT.MATH ?
+		// 		GEE_EXERCISE_NUMBER.Math * this.activeSubjectMetadata.avgTime :
+		// 		this.activeSubject == EXERCISE_SUBJECT.DSP ?
+		// 			GEE_EXERCISE_NUMBER.DSP * this.activeSubjectMetadata.avgTime : -1
+		//
+		//
+		// this.activeSubjectMetadata.varTime = ss.variance(this.activeSubjectMetadata.timeArray);
+		//
+		// this.activeSubjectMetadata.maxTime = ss.max(this.activeSubjectMetadata.timeArray);
+		//
+		// this.activeSubjectMetadata.minTime = ss.min(this.activeSubjectMetadata.timeArray);
+	}
 
-		this.activeSubjectMetadata.dayProgress = this.activeSubjectMetadata.count / this.activeSubjectMetadata.targetNumber;
+	setBaseInfo(bases: {[K: string]: ExerciseBase}){
+		this.data.setBaseInfo(bases);
+	}
 
-		this.activeSubjectMetadata.subjectProgress = this.activeSubjectMetadata.laser / this.activeSubjectMetadata.subjectProgress;
-
-		this.activeSubjectMetadata.examAbility =
-			this.activeSubject == EXERCISE_SUBJECT.MATH ?
-				GEE_EXERCISE_NUMBER.Math * this.activeSubjectMetadata.avgTime :
-				this.activeSubject == EXERCISE_SUBJECT.DSP ?
-					GEE_EXERCISE_NUMBER.DSP * this.activeSubjectMetadata.avgTime : -1
-
-
-		this.activeSubjectMetadata.varTime = ss.variance(this.activeSubjectMetadata.timeArray);
-
-		this.activeSubjectMetadata.maxTime = ss.max(this.activeSubjectMetadata.timeArray);
-
-		this.activeSubjectMetadata.minTime = ss.min(this.activeSubjectMetadata.timeArray);
+	async save(){
+		await this.data.save()
 	}
 }

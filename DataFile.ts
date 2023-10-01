@@ -3,6 +3,8 @@ import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import yaml from "js-yaml";
 import {DayMetadata_Latest, SubjectMetadata} from "./src/dailyData_version";
+import {ExerciseBase} from "./ExerciseBase";
+import {SUBJECTS} from "./src/constants";
 
 
 export class DataFile implements DayMetadata_Latest{
@@ -109,7 +111,12 @@ export class DataFile implements DayMetadata_Latest{
 		return new DataFile(app, data);
 	}
 
-
+	setBaseInfo(bases: {[K: string]: ExerciseBase}){
+		for (let subject of Object.keys(bases)) {
+			this[subject as SUBJECTS].baseSize = bases[subject].size;
+			this[subject as SUBJECTS].laser = bases[subject].items_completed;
+		}
+	}
 
 
 }

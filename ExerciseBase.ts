@@ -6,7 +6,7 @@ import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
 import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
 import {BaseContent, ExerciseInitData, SBaseMetadata} from "./src/base_version";
-import {EXERCISE_BASE, EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY} from "./src/constants";
+import {EXERCISE_BASE, EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -28,7 +28,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	query_strategy: QUERY_STRATEGY = QUERY_STRATEGY.NEW_EXERCISE_FIRST;
 
-	subject: string;
+	subject: SUBJECTS;
 
 	tag: string;
 

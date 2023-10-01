@@ -3,7 +3,7 @@ import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
-import {EXERCISE_BASE, EXERCISE_SUBJECT} from "./src/constants";
+import {EXERCISE_BASE, EXERCISE_SUBJECT, SUBJECTS} from "./src/constants";
 import {AssessModal, BaseModal, DeleteExerciseModal} from "./src/Modal";
 
 // Remember to rename these classes and interfaces!
@@ -146,7 +146,7 @@ export default class MyPlugin extends Plugin {
 		// new Notice(`${file.name} Changed!`, 3000);
 		new Notice(`Type of the excalidraw file being pulled out is ${typeof excalidrawFile}`);
 		if (excalidrawFile) {
-			const subject = excalidrawFile.subject;
+			const subject: SUBJECTS = excalidrawFile.subject;
 			excalidrawFile.elements = await ExcalidrawFile.read(this.app, excalidrawFile.path);
 			new Notice(`Previous number of exercises in excalidrawFile file: ${excalidrawFile.previeousExerciseArray.size}\n\nCurrent number of exercises in excalidrawFile file: ${excalidrawFile.exerciseArray.size}`, 2000);
 
@@ -157,8 +157,8 @@ export default class MyPlugin extends Plugin {
 			ExcalidrawFile.createIDLinktextMapping(excalidrawFile);
 
 			if (newLTArray.length > 0 || deletedLTArray.length > 0) {
-				this.cpu.bases[subject].updateRuntimeBase("delete", deletedLTArray);
-				this.cpu.bases[subject].updateRuntimeBase("create",newLTArray);
+				this.cpu.updateRuntimeBase(subject,"delete", deletedLTArray);
+				this.cpu.updateRuntimeBase(subject,"create",newLTArray);
 				await this.cpu.bases[subject].save();
 				excalidrawFile.previeousExerciseArray = new Set(excalidrawFile.exerciseArray);
 			}

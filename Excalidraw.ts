@@ -3,6 +3,7 @@ import {GenericFile} from "./GenericFile";
 import {ExerciseBase} from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
+import {SUBJECTS} from "./src/constants";
 
 export interface ExcalidrawJSON {
 	elements: ExcalidrawElement[];
@@ -32,7 +33,7 @@ interface ExcalidrawMetadata {
 export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 	app_:App;
 
-	subject: string;
+	subject: SUBJECTS;
 
 	name:string
 
