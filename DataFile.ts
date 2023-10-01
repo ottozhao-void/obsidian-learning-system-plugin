@@ -1,8 +1,8 @@
 import {App, moment, normalizePath, TFile} from "obsidian";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
-import {DayMetadata_Latest} from "./src/dailData_version";
 import yaml from "js-yaml";
+import {DayMetadata_Latest} from "./src/dailyData_version";
 
 
 export class DataFile implements DayMetadata_Latest{

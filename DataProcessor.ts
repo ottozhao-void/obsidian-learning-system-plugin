@@ -1,6 +1,6 @@
 import {App, stringifyYaml, TFile, moment, Notice, normalizePath, parseYaml, addIcon} from "obsidian";
 import {
-	EXERCISE_BASE, ExerciseBase,
+	ExerciseBase,
 } from "./ExerciseBase";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {DataArray, getAPI, Literal, parseField} from "obsidian-dataview";
@@ -8,9 +8,10 @@ import {Exercise, ExerciseLinkText} from "./Exercise";
 import {ExcalidrawElement, ExcalidrawFile, ExcalidrawJSON} from "./Excalidraw";
 import {getExerciseLinkText, parseFrontmatter, parseJSON} from "./src/utility/parser";
 import {stringifyTOJSON} from "./src/utility/io";
-import {DayFrontmatter, StatFile} from "./StatFile";
 import {SBaseMetadata} from "./src/base_version";
-import {EXERCISE_SUBJECT} from "./src/constants";
+import {EXERCISE_BASE, EXERCISE_SUBJECT} from "./src/constants";
+import {DataFile} from "./DataFile";
+import {DayMetadata_Latest} from "./src/dailyData_version";
 
 
 export const getDailyDfNameTemplate = ():string => {
@@ -29,7 +30,7 @@ const TOTAL_TIME_KEY = '_total_time';
 export class DataProcessor{
 	app_: App;
 	// The statfile should be the runtime Object of the actual Obsidian note that store the data.
-	statfile: StatFile;
+	statfile: DataFile;
 
 	bases: {[K: string]: ExerciseBase} = {};
 
@@ -38,7 +39,7 @@ export class DataProcessor{
 	activeExercise: Exercise | undefined;
 
 
-	private constructor(app:App, bases: {[K: string]: ExerciseBase}, statFile: StatFile) {
+	private constructor(app:App, bases: {[K: string]: ExerciseBase}, statFile: DataFile) {
 		this.app_ = app;
 		this.bases = bases;
 		this.statfile = statFile
@@ -62,15 +63,15 @@ export class DataProcessor{
 		}
 
 		// Init StatFile
-		const statFilePath = StatFile.path;
+		const statFilePath = DataFile.path;
 		const exists = await app.vault.adapter.exists(statFilePath);
-		let statFile:StatFile;
+		let statFile:DataFile;
 		if (exists) {
-			const dayFrontmatter: DayFrontmatter = parseFrontmatter(await app.vault.adapter.read(normalizePath(statFilePath))) as DayFrontmatter
-			statFile = StatFile.fromFrontmatter(app,dayFrontmatter)
+			const dayFrontmatter: DayMetadata_Latest  = parseFrontmatter(await app.vault.adapter.read(normalizePath(statFilePath))) as DayMetadata_Latest
+			statFile = DataFile.fromFrontmatter(app,dayFrontmatter)
 		}
 		else {
-			statFile = new StatFile(app)
+			statFile = new DataFile(app)
 			await statFile.save()
 		}
 

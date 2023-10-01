@@ -1,8 +1,8 @@
 import {ExcalidrawElement, ExcalidrawFile, EXERCISE_BOX} from "../../Excalidraw";
 import {ExerciseLinkText} from "../../Exercise";
 import * as yaml from 'js-yaml';
-import {DayFrontmatter, DayMetadata} from "../../StatFile";
-import {Vault} from "obsidian";
+import {App, normalizePath, parseYaml, Vault} from "obsidian";
+import {DayMetadata_Latest} from "../dailyData_version";
 
 // export function readFrom(path:string):string = Vault.
 
@@ -30,16 +30,22 @@ export function toYaml(obj: Object, excluded_key = "_"): string {
 	return `---\n${yaml.dump(sanitizedObject)}---`;
 }
 
-export function parseFrontmatter(content: string): DayFrontmatter | undefined {
+export function parseFrontmatter(content: string): DayMetadata_Latest | undefined {
 	const pattern = /---\s*([\s\S]*?)\s*---/;
 	const matches = pattern.exec(content);
 	if (matches && matches[1]) {
 		try {
-			return yaml.load(matches[1]) as DayMetadata;
+			return yaml.load(matches[1]) as DayMetadata_Latest;
 		} catch (e) {
 			console.error('Error parsing YAML:', e);
 			return undefined;
 		}
 	}
 	return undefined;
+}
+
+export async function parseYamlWithPath(app:App, path: string): Promise<any> {
+	// get file content from path
+	const content = await app.vault.adapter.read(normalizePath(path));
+	return parseYaml(content)
 }

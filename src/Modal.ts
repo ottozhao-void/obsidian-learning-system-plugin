@@ -1,5 +1,5 @@
 import {App, Modal, Notice, Setting} from "obsidian";
-import {EXERCISE_STATUSES, EXERCISE_STATUSES_SWAPPED, EXERCISE_SUBJECT} from "./constants";
+import {EXERCISE_STATUSES, EXERCISE_STATUSES_OPTION, EXERCISE_SUBJECT} from "./constants";
 import {DataProcessor} from "../DataProcessor";
 import MyPlugin from "../main";
 import {ExerciseBase} from "../ExerciseBase";
@@ -22,7 +22,7 @@ export class AssessModal extends Modal {
 		// Set Status
 		new Setting(this.contentEl)
 			.addDropdown(dp => {
-				dp.addOptions(EXERCISE_STATUSES_SWAPPED);
+				dp.addOptions(EXERCISE_STATUSES_OPTION);
 				this.status = dp.getValue() as EXERCISE_STATUSES;
 				dp
 					.onChange(v => {

@@ -1,9 +1,9 @@
-import {DayMetadata_Latest, DayMetadata_V1, SubjectMetadata} from "./src/dailData_version";
-import {parseYamlWithPath} from "./src/utility/parser";
 import {App, moment, Notice} from "obsidian";
-import {DataFile} from "./DataFile";
 import * as ss from 'simple-statistics'
 import {EXERCISE_SUBJECT, GEE_EXERCISE_NUMBER, SUBJECTS} from "./src/constants";
+import {DataFile} from "./DataFile";
+import {DayMetadata_Latest, SubjectMetadata} from "./src/dailyData_version";
+import {parseYamlWithPath} from "./src/utility/parser";
 
 type FieldValue = number | number[];
 type TargetNumber = number;
