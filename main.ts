@@ -68,6 +68,15 @@ export default class MyPlugin extends Plugin {
 		})
 
 		this.addCommand({
+			id: "show-debug-info",
+			name: "Show Debug Information",
+			callback: () => {
+				console.log(this.cpu.activeBase);
+				console.log(this.cpu.activeExercise);
+			}
+		})
+
+		this.addCommand({
 			id: "fixture-all-exercises",
 			name: "Fixture all exercise",
 			callback: async ()=> {
@@ -118,7 +127,6 @@ export default class MyPlugin extends Plugin {
 				else {
 					new AssessModal(this.app,this.cpu).open()
 					new Notice("Successfully closed the active exercise")
-
 				}
 			}
 		});
