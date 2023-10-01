@@ -3,7 +3,7 @@ import {
 	moment,
 } from 'obsidian';
 import {ExerciseHistory, ExerciseMetadata_Latest} from "./src/exercise_version";
-import {EXERCISE_STATUSES} from "./src/constants";
+import {EXERCISE_STATUSES, EXERCISE_SUBJECT} from "./src/constants";
 
 export type ExerciseLinkText = string;
 
@@ -18,7 +18,7 @@ export class Exercise implements ExerciseMetadata_Latest{
 
 	id: string;
 
-	subject: string;
+	subject: EXERCISE_SUBJECT;
 
 	state: EXERCISE_STATUSES;
 

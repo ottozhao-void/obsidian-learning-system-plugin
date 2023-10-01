@@ -2,23 +2,74 @@ import {App, moment, normalizePath, TFile} from "obsidian";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import yaml from "js-yaml";
-import {DayMetadata_Latest} from "./src/dailyData_version";
+import {DayMetadata_Latest, SubjectMetadata} from "./src/dailyData_version";
 
 
 export class DataFile implements DayMetadata_Latest{
-	dsp_averageTime: number = 0;
-	dsp_exercises: number = 0;
-	dsp_total_time: number = 0;
+	// dsp_averageTime: number = 0;
+	// dsp_exercises: number = 0;
+	// dsp_total_time: number = 0;
+	//
+	// math_averageTime: number = 0;
+	// math_exercises: number = 0;
+	// math_total_time: number = 0;
+	//
+	// politics_averageTime: number = 0;
+	// politics_exercises: number = 0;
+	// politics_total_time: number = 0;
+	//
+	// totoal_focus_time: number = 0;
 
-	math_averageTime: number = 0;
-	math_exercises: number = 0;
-	math_total_time: number = 0;
+	DSP: SubjectMetadata = {
+		count: 0,
+		timeArray: [],
+		avgTime:0,
+		varTime:0,
+		totalTime:0,
+		baseSize:0,
+		laser:0,
+		targetNumber:0,
+		dayProgress:0,
+		subjectProgress:0,
+		maxTime:0,
+		minTime:0,
+		examAbility:0
+	};
 
-	politics_averageTime: number = 0;
-	politics_exercises: number = 0;
-	politics_total_time: number = 0;
+	Math: SubjectMetadata = {
+		count: 0,
+		timeArray: [],
+		avgTime:0,
+		varTime:0,
+		totalTime:0,
+		baseSize:0,
+		laser:0,
+		targetNumber:0,
+		dayProgress:0,
+		subjectProgress:0,
+		maxTime:0,
+		minTime:0,
+		examAbility:0
+	};
 
-	totoal_focus_time: number = 0;
+	Politics: SubjectMetadata = {
+		count: 0,
+		timeArray: [],
+		avgTime:0,
+		varTime:0,
+		totalTime:0,
+		baseSize:0,
+		laser:0,
+		targetNumber:0,
+		dayProgress:0,
+		subjectProgress:0,
+		maxTime:0,
+		minTime:0,
+		examAbility:0
+	};
+
+	plan: number = 0;
+	totalFocusTime: number = 0;
 
 
 	app_: App;
@@ -57,6 +108,8 @@ export class DataFile implements DayMetadata_Latest{
 	static fromFrontmatter(app:App, data: DayMetadata_Latest): DataFile {
 		return new DataFile(app, data);
 	}
+
+
 
 
 }

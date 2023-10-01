@@ -83,7 +83,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	jsonify(): BaseContent {
 		// console.log(this);
-		// console.log(this.size);
+		// console.log(this.baseSize);
 		// console.log(this.items_completed);
 		return `\`\`\`json\n${JSON.stringify(this, (k,v) => {
 			if (k.endsWith("_")) return undefined;

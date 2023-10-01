@@ -22,7 +22,7 @@ export interface SubjectMetadata {
 	avgTime: number;
 	varTime: number;
 	totalTime: number;
-	size: number;
+	baseSize: number;
 	laser: number;
 	targetNumber: number;
 	dayProgress: number;
@@ -36,7 +36,7 @@ export interface DayMetadata_V1 {
 
 	totalFocusTime: number;
 
-	plan: number;
+	plan: number; // Number of days planed
 
 	Math: SubjectMetadata;
 

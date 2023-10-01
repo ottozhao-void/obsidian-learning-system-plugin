@@ -1,23 +1,14 @@
-import {App, stringifyYaml, TFile, moment, Notice, normalizePath, parseYaml, addIcon} from "obsidian";
+import {App, moment, Notice, normalizePath} from "obsidian";
 import {
 	ExerciseBase,
 } from "./ExerciseBase";
-import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
-import {DataArray, getAPI, Literal, parseField} from "obsidian-dataview";
-import {Exercise, ExerciseLinkText} from "./Exercise";
-import {ExcalidrawElement, ExcalidrawFile, ExcalidrawJSON} from "./Excalidraw";
-import {getExerciseLinkText, parseFrontmatter, parseJSON} from "./src/utility/parser";
-import {stringifyTOJSON} from "./src/utility/io";
-import {SBaseMetadata} from "./src/base_version";
-import {EXERCISE_BASE, EXERCISE_SUBJECT} from "./src/constants";
+import {Exercise} from "./Exercise";
+import {ExcalidrawFile} from "./Excalidraw";
+import {parseFrontmatter} from "./src/utility/parser";
+import {EXERCISE_BASE} from "./src/constants";
 import {DataFile} from "./DataFile";
 import {DayMetadata_Latest} from "./src/dailyData_version";
-
-
-export const getDailyDfNameTemplate = ():string => {
-	const date_string = moment().format('YYYY-MM-DD');
-	return `🗓️Daily notes/DF${date_string}.md`
-}
+import {DataModel} from "./DataModel";
 
 const AVERAGE_TIME_KEY = '_averageTime';
 const EXERCISES_KEY = '_exercises';
@@ -32,6 +23,8 @@ export class DataProcessor{
 	// The statfile should be the runtime Object of the actual Obsidian note that store the data.
 	statfile: DataFile;
 
+	dataModel: DataModel;
+
 	bases: {[K: string]: ExerciseBase} = {};
 
 	activeBase: ExerciseBase | undefined;
@@ -39,17 +32,15 @@ export class DataProcessor{
 	activeExercise: Exercise | undefined;
 
 
-	private constructor(app:App, bases: {[K: string]: ExerciseBase}, statFile: DataFile) {
+	private constructor(app:App, bases: {[K: string]: ExerciseBase}, statFile: DataFile, dataModel:DataModel) {
 		this.app_ = app;
 		this.bases = bases;
 		this.statfile = statFile
-
+		this.dataModel = dataModel;
 	}
 
 	static async init(app:App){
 		//
-		const dvAPI = getAPI();
-
 		// const statFile: StatFile = await StatFile.init(app);
 
 		// Init Exercise Base
@@ -67,7 +58,7 @@ export class DataProcessor{
 		const exists = await app.vault.adapter.exists(statFilePath);
 		let statFile:DataFile;
 		if (exists) {
-			const dayFrontmatter: DayMetadata_Latest  = parseFrontmatter(await app.vault.adapter.read(normalizePath(statFilePath))) as DayMetadata_Latest
+			const dayFrontmatter: DayMetadata_Latest  = await parseFrontmatter(app,statFilePath) as DayMetadata_Latest
 			statFile = DataFile.fromFrontmatter(app,dayFrontmatter)
 		}
 		else {
@@ -75,7 +66,10 @@ export class DataProcessor{
 			await statFile.save()
 		}
 
-		return new DataProcessor(app,bases,statFile);
+		// Init DataModel
+		const dataModel: DataModel = await DataModel.init(app,statFilePath);
+
+		return new DataProcessor(app,bases,statFile,dataModel);
 	}
 
 	getFieldValue(keySuffix:string){
@@ -101,10 +95,6 @@ export class DataProcessor{
 
 		this.calculateTimeSpentOnSubjectForTheDay();
 	}
-
-
-	// This functions accumulates the number of exercises that has done so far
-	accumulateExerciseCountForSubject(){}
 
 	// This function calculates the time spent on a particular particular subject
 	async calculateTimeSpentOnSubjectForTheDay(){
@@ -143,9 +133,11 @@ export class DataProcessor{
 				this.activeExercise.close();
 
 				// Update the Runtime StatFile Object
-				await this.calculateAverageTimePerExercise(this.activeExercise.getDurationInSeconds())
-				await this.increaseExerciseCount();
-				await this.calculateTimeSpentOnSubjectForTheDay();
+				// await this.calculateAverageTimePerExercise(this.activeExercise.getDurationInSeconds())
+				// await this.increaseExerciseCount();
+				// await this.calculateTimeSpentOnSubjectForTheDay();
+				this.dataModel.onAseementCompletted(this.activeExercise.subject, this.activeExercise.getDurationInSeconds())
+
 
 				// Save these updates to Obsidian Notes
 				this.activeBase?.updateRuntimeBase("modify", this.activeExercise); // Save Exercises

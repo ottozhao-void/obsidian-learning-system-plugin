@@ -3,7 +3,7 @@ import * as ss from 'simple-statistics'
 import {EXERCISE_SUBJECT, GEE_EXERCISE_NUMBER, SUBJECTS} from "./src/constants";
 import {DataFile} from "./DataFile";
 import {DayMetadata_Latest, SubjectMetadata} from "./src/dailyData_version";
-import {parseYamlWithPath} from "./src/utility/parser";
+import {parseFrontmatter} from "./src/utility/parser";
 
 type FieldValue = number | number[];
 type TargetNumber = number;
@@ -20,7 +20,12 @@ export class DataModel {
 
 
 	static async init(app:App, filePath: string): Promise<DataModel> {
-		const dataYaml: DayMetadata_Latest = await parseYamlWithPath(app, filePath);
+		const dataYaml: DayMetadata_Latest = await parseFrontmatter(app, filePath);
+		if (!dataYaml) {
+			const error = new Error(`Fails to read data yaml from file ${filePath}`);
+			console.error(error);
+		}
+
 		const model = new DataModel();
 		model.data = new DataFile(app,dataYaml);
 		model.filePath = filePath;
@@ -54,11 +59,11 @@ export class DataModel {
 
 		this.activeSubjectMetadata.totalTime = ss.sum(this.activeSubjectMetadata.timeArray);
 
-		// size 和 laser 的更新
+		// baseSize 和 laser 的更新
 
 		// 累计做过的题目量，这个或许不需要单独计算，只需要到时候用tracker画图时， 将acc字段设为true即可
 
-		this.activeSubjectMetadata.targetNumber = this.activeSubjectMetadata.size / this.data.plan;
+		this.activeSubjectMetadata.targetNumber = this.activeSubjectMetadata.baseSize / this.data.plan;
 
 		this.activeSubjectMetadata.dayProgress = this.activeSubjectMetadata.count / this.activeSubjectMetadata.targetNumber;
 

@@ -30,22 +30,8 @@ export function toYaml(obj: Object, excluded_key = "_"): string {
 	return `---\n${yaml.dump(sanitizedObject)}---`;
 }
 
-export function parseFrontmatter(content: string): DayMetadata_Latest | undefined {
-	const pattern = /---\s*([\s\S]*?)\s*---/;
-	const matches = pattern.exec(content);
-	if (matches && matches[1]) {
-		try {
-			return yaml.load(matches[1]) as DayMetadata_Latest;
-		} catch (e) {
-			console.error('Error parsing YAML:', e);
-			return undefined;
-		}
-	}
-	return undefined;
-}
-
-export async function parseYamlWithPath(app:App, path: string): Promise<any> {
-	// get file content from path
-	const content = await app.vault.adapter.read(normalizePath(path));
-	return parseYaml(content)
+export async function parseFrontmatter(app:App,path: string): Promise<any> {
+	const frontmatter = await app.vault.adapter.read(normalizePath(path));
+	const match = /---\s*([\s\S]*?)\s*---/.exec(frontmatter)
+	return match ? parseYaml(match[1]) : undefined
 }
