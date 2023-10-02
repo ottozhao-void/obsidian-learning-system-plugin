@@ -1,6 +1,9 @@
 import {ExerciseInitData} from "./base_version";
 import {normalizePath} from "obsidian";
 
+
+export const DATE_FORMAT = "YYYYMMDD"
+
 export const KEY_COMBINATIONS = {
 	Select_Exercise: "ctrl+shift+A",
 	Exercise_Completed: "ctrl+shift+S",

@@ -29,10 +29,12 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		// await this.loadSettings();
-		this.cpu = await DataProcessor.init(this.app);
-		this.baseModal = new BaseModal(this.app,this.cpu)
 		this.onExFileModifyRef =  this.app.vault.on("modify", this.onExcalidrawFileModify, this);
 		this.onExFileRenameRef = this.app.vault.on("rename",this.onExcalidrawFileRename,this);
+		setTimeout(async ()=>{
+			this.cpu = await DataProcessor.init(this.app);
+			this.baseModal = new BaseModal(this.app,this.cpu)
+		},1500);
 
 		this.addCommand({
 			id: "switch-base",

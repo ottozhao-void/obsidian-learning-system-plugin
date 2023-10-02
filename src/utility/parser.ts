@@ -30,7 +30,7 @@ export function toYaml(obj: Object, excluded_key = "_"): string {
 	return `---\n${yaml.dump(sanitizedObject)}---`;
 }
 
-export async function parseFrontmatter(app:App,path: string): Promise<any> {
+export async function parseFrontmatter(app:App, path: string): Promise<any> {
 	const frontmatter = await app.vault.adapter.read(normalizePath(path));
 	const match = /---\s*([\s\S]*?)\s*---/.exec(frontmatter)
 	return match ? parseYaml(match[1]) : undefined

@@ -5,7 +5,7 @@ import {
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {ExcalidrawFile} from "./Excalidraw";
 import {parseFrontmatter} from "./src/utility/parser";
-import {EXERCISE_BASE, SUBJECTS} from "./src/constants";
+import {DATE_FORMAT, EXERCISE_BASE, SUBJECTS} from "./src/constants";
 import {DataFile} from "./DataFile";
 import {DayMetadata_Latest} from "./src/dailyData_version";
 import {DataModel} from "./DataModel";
@@ -45,14 +45,15 @@ export class DataProcessor{
 		let bases: {[K: string]: ExerciseBase} = {};
 		for (let subject of Object.keys(EXERCISE_BASE)) {
 			const exists = await app.vault.adapter.exists(EXERCISE_BASE[subject].path);
-			bases[subject] = exists ?
-				await ExerciseBase.read(app,EXERCISE_BASE[subject].path) :
-				await ExerciseBase.create(app,subject);
+			bases[subject] = await (exists ?
+					ExerciseBase.read(app,EXERCISE_BASE[subject].path) :
+					ExerciseBase.create(app,subject)
+			);
 			Object.values(bases[subject].excalidraws_).forEach(exc => ExcalidrawFile.createIDLinktextMapping(exc));
 		}
 
 		// Init DataModel
-		const dataFilePath = DataFile.path;
+		const dataFilePath = DataFile.path(moment().format(DATE_FORMAT));
 		const dataModel: DataModel = await DataModel.init(app, dataFilePath, bases);
 
 		return new DataProcessor(app,bases,dataModel);

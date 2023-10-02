@@ -1,6 +1,11 @@
 
-// TODO Create a class (called something like writer) to be responsible for file I/O
 
+// TODO To implement a system that could let me specify which type of exercise ("New", "Drifter", "Stumble"....) I would
+//  like to do this time
+
+// TODO Create a modal that shows metadata of the active base and active exercise
+
+// TODO Create a class (called something like writer) to be responsible for file I/O
 
 // TODO 我感觉我接下来的这个想法是不是有点"过分"？ 就是相当于，我想将文字描述，通过语料库数据化，然后可以在日后检查库内是否存在语义相似的文字，可能提取出一些有用的信息？
 

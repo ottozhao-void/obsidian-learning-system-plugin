@@ -98,7 +98,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	static async read(app:App, path:string): Promise<ExerciseBase>{
 		let baseJSON: SBaseMetadata = parseJSON(await app.vault.adapter.read(normalizePath(path)))
-		return await ExerciseBase.fromJSON(app, baseJSON);
+		return ExerciseBase.fromJSON(app, baseJSON);
 	}
 
 	static async create(app:App, subject: string): Promise<ExerciseBase>{

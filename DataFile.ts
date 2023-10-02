@@ -4,7 +4,8 @@ import {getAPI} from "obsidian-dataview";
 import yaml from "js-yaml";
 import {DayMetadata_Latest, SubjectMetadata} from "./src/dailyData_version";
 import {ExerciseBase} from "./ExerciseBase";
-import {SUBJECTS} from "./src/constants";
+import {DATE_FORMAT, SUBJECTS} from "./src/constants";
+import {parseFrontmatter} from "./src/utility/parser";
 
 
 export class DataFile implements DayMetadata_Latest{
@@ -92,8 +93,7 @@ export class DataFile implements DayMetadata_Latest{
 		return `---\n${yaml.dump(sanitizedObject)}---`;
 	}
 
-	static get path(){
-		const date_string = moment().format('YYYYMMDD');
+	static path(date_string: string){
 		return normalizePath(`🗓️Daily notes/DATA-${date_string}.md`);
 	}
 
@@ -111,10 +111,26 @@ export class DataFile implements DayMetadata_Latest{
 		return new DataFile(app, data);
 	}
 
+	static fromDate(date:string){
+
+	}
+
 	setBaseInfo(bases: {[K: string]: ExerciseBase}){
 		for (let subject of Object.keys(bases)) {
 			this[subject as SUBJECTS].baseSize = bases[subject].size;
 			this[subject as SUBJECTS].laser = bases[subject].items_completed;
+		}
+	}
+
+	async setInitData(app:App,bases:{[K: string]: ExerciseBase}){
+		const yesterday = moment().subtract(1,"day").format(DATE_FORMAT)
+		const filepath = DataFile.path(yesterday);
+		const yesterdayMetadata = await parseFrontmatter(app, filepath) as DayMetadata_Latest
+		for (let subject of Object.keys(bases)) {
+			this[subject as SUBJECTS].baseSize = bases[subject].size;
+			this[subject as SUBJECTS].laser = bases[subject].items_completed;
+			const subjectMetadata = yesterdayMetadata[subject as SUBJECTS];
+			this[subject as SUBJECTS].targetNumber = subjectMetadata.count + 1;
 		}
 	}
 
