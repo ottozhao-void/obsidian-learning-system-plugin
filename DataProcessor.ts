@@ -1,21 +1,12 @@
-import {App, moment, Notice, normalizePath} from "obsidian";
+import {App, moment, Notice} from "obsidian";
 import {
 	ExerciseBase,
 } from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {ExcalidrawFile} from "./Excalidraw";
-import {parseFrontmatter} from "./src/utility/parser";
 import {DATE_FORMAT, EXERCISE_BASE, SUBJECTS} from "./src/constants";
 import {DataFile} from "./DataFile";
-import {DayMetadata_Latest} from "./src/dailyData_version";
 import {DataModel} from "./DataModel";
-
-const AVERAGE_TIME_KEY = '_averageTime';
-const EXERCISES_KEY = '_exercises';
-const TOTAL_TIME_KEY = '_total_time';
-
-
-
 
 
 export class DataProcessor{
@@ -38,8 +29,6 @@ export class DataProcessor{
 	}
 
 	static async init(app:App){
-		//
-		// const statFile: StatFile = await StatFile.init(app);
 
 		// Init Exercise Base
 		let bases: {[K: string]: ExerciseBase} = {};
@@ -65,7 +54,7 @@ export class DataProcessor{
 			const linktext = this.activeBase
 				.excalidraws_[this.activeExercise.id.split(ExcalidrawFile.id_separator)[0]]
 				.idLinktextMapping[this.activeExercise.id];
-			// This If statement checks for exercises already created but their posistion are changed accidentally
+			// This If statement checks for exercises already created but their position are changed accidentally
 			// resulting in the change of their id and fail to retrieve their linktext.
 			if (linktext == undefined) new Notice(`There is no matched Linktext for exercise with id: ${this.activeExercise.id}`)
 			this.activeExercise.start_time = moment().valueOf();
@@ -74,8 +63,6 @@ export class DataProcessor{
 			new Notice("next() failed to find the next exercise");
 		}
 	}
-
-
 
 	async closeUpCurrentExercise(early: boolean = false){
 		if (this.activeExercise) {
@@ -91,11 +78,7 @@ export class DataProcessor{
 				// Update the Runtime Base Object
 				this.updateRuntimeBase(this.activeExercise.subject, "modify", this.activeExercise); // Save Exercises
 
-				// Update the Runtime StatFile Object
-				// await this.calculateAverageTimePerExercise(this.activeExercise.getDurationInSeconds())
-				// await this.increaseExerciseCount();
-				// await this.calculateTimeSpentOnSubjectForTheDay();
-				this.dataModel.onAseementCompletted(
+				await this.dataModel.update(
 					this.activeExercise.subject,
 					this.activeExercise.getDurationInSeconds()
 					)
@@ -112,7 +95,7 @@ export class DataProcessor{
 	}
 
 	updateRuntimeBase(subject: SUBJECTS, actionType: "create" | "modify" | "delete", ct: ExerciseLinkText[] | Exercise){
-		this.bases[subject].updateRuntimeBase(actionType, ct)
+		this.bases[subject].update(actionType, ct)
 		this.dataModel.setBaseInfo(this.bases)
 	}
 

@@ -1,10 +1,11 @@
-import {EventRef, Notice, Plugin, TAbstractFile} from 'obsidian';
+import {EventRef, moment, normalizePath, Notice, Plugin, TAbstractFile} from 'obsidian';
 import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
-import {EXERCISE_BASE, EXERCISE_SUBJECT, SUBJECTS} from "./src/constants";
+import {DATE_FORMAT, EXERCISE_BASE, EXERCISE_SUBJECT, SUBJECTS} from "./src/constants";
 import {AssessModal, BaseModal, DeleteExerciseModal} from "./src/Modal";
+import {DataFile} from "./DataFile";
 
 // Remember to rename these classes and interfaces!
 
@@ -132,8 +133,6 @@ export default class MyPlugin extends Plugin {
 				}
 			}
 		});
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		// this.registerInterval(window.setInterval(async () => {console.log(this.cpu.bases)}, 3 * 1000));
 	}
 
 	private async onExcalidrawFileModify(file: TAbstractFile): Promise<void> {
@@ -155,7 +154,7 @@ export default class MyPlugin extends Plugin {
 			const newLTArray = excalidrawFile.filterForNewExercise();
 			const deletedLTArray = excalidrawFile.filterForDeletedExercise().map(linktext => excalidrawFile.linktextIDMapping[linktext]);
 
-			// update the id-link mapping
+			// _update the id-link mapping
 			ExcalidrawFile.createIDLinktextMapping(excalidrawFile);
 
 			if (newLTArray.length > 0 || deletedLTArray.length > 0) {

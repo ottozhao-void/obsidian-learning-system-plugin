@@ -1,16 +1,9 @@
 import {App, moment, Notice} from "obsidian";
 import * as ss from 'simple-statistics'
-import {DATE_FORMAT, EXERCISE_SUBJECT, GEE_EXERCISE_NUMBER, SUBJECTS} from "./src/constants";
+import {EXERCISE_SUBJECT, GEE_EXERCISE_NUMBER, SUBJECTS} from "./src/constants";
 import {DataFile} from "./DataFile";
-import {DayMetadata_Latest, SubjectMetadata} from "./src/dailyData_version";
-import {parseFrontmatter} from "./src/utility/parser";
+import {SubjectMetadata} from "./src/dailyData_version";
 import {ExerciseBase} from "./ExerciseBase";
-
-type FieldValue = number | number[];
-type TargetNumber = number;
-type DaySubjectCount = number;
-type LaserCount = number;
-type Minute = number;
 
 export class DataModel {
 
@@ -26,7 +19,7 @@ export class DataModel {
 		const model = new DataModel();
 
 		model.data = exists ?
-			new DataFile(app,await parseFrontmatter(app, filePath))
+			new DataFile(app, await DataFile.read(app, filePath))
 			: await (async ()=>{
 				const data = new DataFile(app)
 				await data.setInitData(app,bases);
@@ -40,11 +33,12 @@ export class DataModel {
 		return model;
 	}
 
-	onAseementCompletted(subject: SUBJECTS, timeCost: Minute) {
+	async update(subject: SUBJECTS, timeCost: number) {
 		this.setSubject(subject)
 
-		this.update(timeCost);
+		await this._update(timeCost);
 
+		this.data.totalFocusTime = this.data.Math.totalTimeInHour + this.data.DSP.totalTimeInHour + this.data.Politics.totalTimeInHour
 
 		this.data[this.activeSubject] = this.activeSubjectMetadata;
 	}
@@ -56,17 +50,18 @@ export class DataModel {
 
 	// async write()
 
-	async update(timeCost: Minute){
+	private async _update(timeCost: number){
 		// To increase the count of exercise completed
 
 		this.activeSubjectMetadata.count ++;
 
 		// To add the time cost of the new exercise to the array
-		this.activeSubjectMetadata.timeArray.push(timeCost/60);
+		this.activeSubjectMetadata.timeArray.push(Math.round(timeCost*100/60)/100);
 
 		this.activeSubjectMetadata.avgTime = ss.average(this.activeSubjectMetadata.timeArray);
 
 		this.activeSubjectMetadata.totalTime = ss.sum(this.activeSubjectMetadata.timeArray);
+		this.activeSubjectMetadata.totalTimeInHour = this.activeSubjectMetadata.totalTime / 60;
 
 
 		// 累计做过的题目量，这个或许不需要单独计算，只需要到时候用tracker画图时， 将acc字段设为true即可
@@ -89,6 +84,7 @@ export class DataModel {
 		this.activeSubjectMetadata.maxTime = ss.max(this.activeSubjectMetadata.timeArray);
 
 		this.activeSubjectMetadata.minTime = ss.min(this.activeSubjectMetadata.timeArray);
+
 	}
 
 	setBaseInfo(bases: {[K: string]: ExerciseBase}){

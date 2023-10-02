@@ -22,6 +22,7 @@ export interface SubjectMetadata {
 	avgTime: number;
 	varTime: number;
 	totalTime: number;
+	totalTimeInHour: number;
 	baseSize: number;
 	laser: number;
 	targetNumber: number;

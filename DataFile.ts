@@ -2,7 +2,7 @@ import {App, moment, normalizePath, TFile} from "obsidian";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import yaml from "js-yaml";
-import {DayMetadata_Latest, SubjectMetadata} from "./src/dailyData_version";
+import {DayMetadata_Latest, DayMetadata_V0, SubjectMetadata} from "./src/dailyData_version";
 import {ExerciseBase} from "./ExerciseBase";
 import {DATE_FORMAT, SUBJECTS} from "./src/constants";
 import {parseFrontmatter} from "./src/utility/parser";
@@ -29,6 +29,7 @@ export class DataFile implements DayMetadata_Latest{
 		avgTime:0,
 		varTime:0,
 		totalTime:0,
+		totalTimeInHour:0,
 		baseSize:0,
 		laser:0,
 		targetNumber:0,
@@ -45,6 +46,7 @@ export class DataFile implements DayMetadata_Latest{
 		avgTime:0,
 		varTime:0,
 		totalTime:0,
+		totalTimeInHour:0,
 		baseSize:0,
 		laser:0,
 		targetNumber:0,
@@ -61,6 +63,7 @@ export class DataFile implements DayMetadata_Latest{
 		avgTime:0,
 		varTime:0,
 		totalTime:0,
+		totalTimeInHour:0,
 		baseSize:0,
 		laser:0,
 		targetNumber:0,
@@ -74,7 +77,7 @@ export class DataFile implements DayMetadata_Latest{
 	plan: number = 0;
 	totalFocusTime: number = 0;
 
-
+	private _path_: string = normalizePath(`🗓️Daily notes/DATA-${moment().format(DATE_FORMAT)}.md`)
 	app_: App;
 	dv_: DataviewApi | undefined;
 
@@ -93,26 +96,16 @@ export class DataFile implements DayMetadata_Latest{
 		return `---\n${yaml.dump(sanitizedObject)}---`;
 	}
 
-	static path(date_string: string){
-		return normalizePath(`🗓️Daily notes/DATA-${date_string}.md`);
-	}
-
 	get path(){
-		const date_string = moment().format('YYYYMMDD');
-		return normalizePath(`🗓️Daily notes/DATA-${date_string}.md`);
+		return this._path_;
+	}
+	set path(path:string){
+		this._path_ = path;
 	}
 
 	async save(){
 		const content = this.toYaml(this,"_")
 		await this.app_.vault.adapter.write(normalizePath(this.path), content);
-	}
-
-	static fromFrontmatter(app:App, data: DayMetadata_Latest): DataFile {
-		return new DataFile(app, data);
-	}
-
-	static fromDate(date:string){
-
 	}
 
 	setBaseInfo(bases: {[K: string]: ExerciseBase}){
@@ -132,6 +125,80 @@ export class DataFile implements DayMetadata_Latest{
 			const subjectMetadata = yesterdayMetadata[subject as SUBJECTS];
 			this[subject as SUBJECTS].targetNumber = subjectMetadata.count + 1;
 		}
+	}
+
+	static fromFrontmatter(app:App, data: DayMetadata_Latest): DataFile {
+		return new DataFile(app, data);
+	}
+
+	static path(date_string: string){
+		return normalizePath(`🗓️Daily notes/DATA-${date_string}.md`);
+	}
+
+	static fromDate(date:string){
+
+	}
+
+	static async read(app:App, path: string): Promise<DayMetadata_Latest> {
+		return parseFrontmatter(app,path)
+	}
+
+	static async fromOldToNew(app:App, path:string){
+		const oldMetadata = await parseFrontmatter(app, path) as DayMetadata_V0;
+		const newMetadata = DataFile.fromFrontmatter(app, {
+			totalFocusTime: Math.round((oldMetadata.math_total_time+oldMetadata.dsp_total_time+oldMetadata.politics_total_time)*100/3600)/100,
+			plan: 0,
+			Math: {
+				count: oldMetadata.math_exercises,
+				timeArray: [],
+				avgTime:Math.round(oldMetadata.math_averageTime*100/60)/100,
+				varTime:0,
+				totalTime:Math.round(oldMetadata.math_total_time*100/60)/100,
+				totalTimeInHour:Math.round(oldMetadata.math_total_time*100/3600)/100,
+				baseSize:0,
+				laser:0,
+				targetNumber:0,
+				dayProgress:0,
+				subjectProgress:0,
+				maxTime:0,
+				minTime:0,
+				examAbility:0
+			},
+			DSP: {
+				count: oldMetadata.dsp_exercises,
+				timeArray: [],
+				avgTime:Math.round(oldMetadata.dsp_averageTime*100/60)/100,
+				varTime:0,
+				totalTime:Math.round(oldMetadata.dsp_total_time*100/60)/100,
+				totalTimeInHour:Math.round(oldMetadata.dsp_total_time*100/3600)/100,
+				baseSize:0,
+				laser:0,
+				targetNumber:0,
+				dayProgress:0,
+				subjectProgress:0,
+				maxTime:0,
+				minTime:0,
+				examAbility:0
+			},
+			Politics: {
+				count: oldMetadata.politics_exercises,
+				timeArray: [],
+				avgTime:Math.round(oldMetadata.politics_averageTime*100/60)/100,
+				varTime:0,
+				totalTime:Math.round(oldMetadata.politics_total_time*100/60)/100,
+				totalTimeInHour:Math.round(oldMetadata.politics_total_time*100/3600)/100,
+				baseSize:0,
+				laser:0,
+				targetNumber:0,
+				dayProgress:0,
+				subjectProgress:0,
+				maxTime:0,
+				minTime:0,
+				examAbility:0
+			}
+		})
+		newMetadata.path = path;
+		await newMetadata.save()
 	}
 
 
