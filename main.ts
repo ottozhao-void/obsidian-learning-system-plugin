@@ -166,12 +166,12 @@ export default class MyPlugin extends Plugin {
 		}
 	}
 
-	private onExcalidrawFileRename(file:TAbstractFile) {
+	private async onExcalidrawFileRename(file:TAbstractFile) {
 		// @ts-ignore
 		const page: {tags: string[]} = this.dataviewAPI?.page(file.path)
 		if (page.tags.join("-").contains("excalidraw")){
 			for (let subject of Object.keys(EXERCISE_BASE)) {
-				this.cpu.bases[subject].indexExcalidraw();
+				await this.cpu.bases[subject].indexExcalidraw();
 			}
 		}
 	}
