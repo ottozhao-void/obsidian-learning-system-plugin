@@ -5,16 +5,12 @@ import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
 import {DATE_FORMAT, EXERCISE_BASE, EXERCISE_SUBJECT, SUBJECTS} from "./src/constants";
 import {AssessModal, BaseModal, DeleteExerciseModal} from "./src/Modal";
-import {DataFile} from "./DataFile";
+import {DEFAULT_SETTINGS, LearningSystemSetting, SystemSetting} from "./SystemSetting"
 
 // Remember to rename these classes and interfaces!
 
-interface HelloWorldPlugin {
-	mySetting: string;
-}
-
 export default class MyPlugin extends Plugin {
-	settings: HelloWorldPlugin;
+	settings: SystemSetting;
 
 	cpu: DataProcessor;
 
@@ -29,13 +25,14 @@ export default class MyPlugin extends Plugin {
 	deleteExerciseID: string
 
 	async onload() {
-		// await this.loadSettings();
+		await this.loadSettings();
 		this.onExFileModifyRef =  this.app.vault.on("modify", this.onExcalidrawFileModify, this);
 		this.onExFileRenameRef = this.app.vault.on("rename",this.onExcalidrawFileRename,this);
 		setTimeout(async ()=>{
 			this.cpu = await DataProcessor.init(this.app);
 			this.baseModal = new BaseModal(this.app,this.cpu)
 		},1500);
+		this.addSettingTab(new LearningSystemSetting(this.app,this))
 
 		this.addCommand({
 			id: "switch-base",
@@ -182,40 +179,13 @@ export default class MyPlugin extends Plugin {
 	}
 
 
-	// async loadSettings() {
-	// 	this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	// }
-	//
-	// async saveSettings() {
-	// 	await this.saveData(this.settings);
-	// }
+	async loadSettings() {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	}
+
+	async saveSettings() {
+		await this.saveData(this.settings);
+	}
 
 }
 
-
-
-// class SampleSettingTab extends PluginSettingTab {
-// 	plugin: MyPlugin;
-//
-// 	constructor(app_: App, plugin: MyPlugin) {
-// 		super(app_, plugin);
-// 		this.plugin = plugin;
-// 	}
-//
-// 	display(): void {
-// 		const {containerEl} = this;
-//
-// 		containerEl.empty();
-//
-// 		new Setting(containerEl)
-// 			.setName('Setting #1')
-// 			.setDesc('It\'s a secret')
-// 			.addText(text => text
-// 				.setPlaceholder('Enter your secret')
-// 				.setValue(this.plugin.settings.mySetting)
-// 				.onChange(async (value) => {
-// 					this.plugin.settings.mySetting = value;
-// 					await this.plugin.saveSettings();
-// 				}));
-// 	}
-// }

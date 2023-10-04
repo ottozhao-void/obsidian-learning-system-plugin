@@ -6,7 +6,7 @@ import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
 import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
 import {BaseContent, ExerciseInitData, SBaseMetadata} from "./src/base_version";
-import {EXERCISE_BASE, EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
+import {EXERCISE_BASE, EXERCISE_STATUSES, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -171,11 +171,13 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 			}
 			randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
 			new Notice(`Exercise at ${randomExerciseIndex} is being pulled out.`,3000);
-
 		}
 
 		if (randomExerciseIndex != -1){
 			return this.exercises.splice(randomExerciseIndex, 1)[0];
+		}
+		if (this.query_strategy == QUERY_STRATEGY.CLOSE_CONTEXT){
+			new Notice("Close Context Selection Strategy is running!")
 		}
 	}
 

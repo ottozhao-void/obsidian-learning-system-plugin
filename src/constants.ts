@@ -24,8 +24,11 @@ export enum GEE_EXERCISE_NUMBER {
 }
 
 export enum QUERY_STRATEGY {
-	"NEW_EXERCISE_FIRST"
+	"NEW_EXERCISE_FIRST"="new_exercise_first",
+	"CLOSE_CONTEXT"="close_context"
 }
+
+export const QUERY_STRATEGY_SWAPPED = Object.fromEntries(Object.entries(QUERY_STRATEGY).map(([key,value])=>[value,key]));
 
 export enum EXERCISE_STATUSES {
 
