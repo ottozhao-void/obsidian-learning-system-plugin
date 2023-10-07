@@ -116,8 +116,14 @@ export class DataFile implements DayMetadata_Latest{
 	}
 
 	async setInitData(app:App,bases:{[K: string]: ExerciseBase}){
-		const yesterday = moment().subtract(1,"day").format(DATE_FORMAT)
-		const filepath = DataFile.path(yesterday);
+		let d = 1;
+		let filepath = "";
+		do {
+			const date = moment().subtract(d,"day").format(DATE_FORMAT)
+			filepath = DataFile.path(date);
+			d++;
+		} while (!(await app.vault.adapter.exists(filepath)));
+
 		const yesterdayMetadata = await parseFrontmatter(app, filepath) as DayMetadata_Latest
 		for (let subject of Object.keys(bases)) {
 			this[subject as SUBJECTS].baseSize = bases[subject].size;
