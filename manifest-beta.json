@@ -1,7 +1,7 @@
 {
 	"id": "otto-learning-system",
 	"name": "Otto's Learning System",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"minAppVersion": "0.15.0",
 	"description": "The plugin is an attempt to digitalize efforts and dedication into learning and find out the current capacity of yourself.",
 	"author": "Otto",
