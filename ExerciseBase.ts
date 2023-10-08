@@ -6,7 +6,7 @@ import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
 import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
 import {BaseContent, ExerciseInitData, SBaseMetadata} from "./src/base_version";
-import {EXERCISE_BASE, EXERCISE_STATUSES, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
+import {EXERCISE_BASE, EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -26,7 +26,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	items_completed: number;
 
-	query_strategy: QUERY_STRATEGY = QUERY_STRATEGY.NEW_EXERCISE_FIRST;
+	strategy = QUERY_STRATEGY.NEW_EXERCISE_FIRST;
 
 	subject: SUBJECTS;
 
@@ -160,7 +160,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	next(): Exercise | undefined {
 		let randomExerciseIndex: number = -1;
 		// console.log(this);
-		if (this.query_strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST) {
+		if (this.strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST) {
 			const newExercisesIndexes = this.exercises
 				.map((ex) => ex.state == EXERCISE_STATUSES.New? ex.index : -1)
 				.filter((index) => index !== -1);
@@ -172,11 +172,10 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 			randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
 			new Notice(`Exercise at ${randomExerciseIndex} is being pulled out.`,3000);
 		}
-
 		if (randomExerciseIndex != -1){
 			return this.exercises.splice(randomExerciseIndex, 1)[0];
 		}
-		if (this.query_strategy == QUERY_STRATEGY.CLOSE_CONTEXT){
+		if (this.strategy == QUERY_STRATEGY.CLOSE_CONTEXT){
 			new Notice("Close Context Selection Strategy is running!")
 		}
 	}

@@ -12,7 +12,7 @@ export interface BaseMetadata_V1 {
 	path: string;
 	size: number;
 	tag: string;
-	query_strategy:QUERY_STRATEGY;
+	strategy:QUERY_STRATEGY;
 	items_completed: number;
 	exercises: Exercise[];
 }
