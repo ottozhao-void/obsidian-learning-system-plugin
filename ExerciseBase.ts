@@ -122,6 +122,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	}
 
 	reIndexExercise(){
+		new Notice(`Indexing Exercise Base - ${this.subject}`);
 		this.exercises.forEach((ex,index) => {ex.index = index})
 	}
 
@@ -159,7 +160,6 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	next(): Exercise | undefined {
 		let randomExerciseIndex: number = -1;
-		// console.log(this);
 		if (this.strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST) {
 			const newExercisesIndexes = this.exercises
 				.map((ex) => ex.state == EXERCISE_STATUSES.New? ex.index : -1)

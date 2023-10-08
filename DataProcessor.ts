@@ -69,7 +69,6 @@ export class DataProcessor{
 			if (early) {
 				this.activeExercise.start_time = 0;
 				this.updateRuntimeBase(this.activeExercise.subject, "modify", this.activeExercise); // Save Exercises
-				await this.activeBase?.save();
 			} else {
 
 				// Update the Runtime Exercise Object
@@ -83,15 +82,16 @@ export class DataProcessor{
 					this.activeExercise.getDurationInSeconds()
 					)
 
-				await this.activeBase?.save();
 				await this.dataModel.save(); // Save StatFile
 
 				new Notice(`Start Time: ${this.activeExercise.getStartTime().format("ddd MMM D HH:mm:ss")}\n\nEnd Time: ${this.activeExercise.getEndTime().format("ddd MMM D HH:mm:ss")}\n\nDuration: ${this.activeExercise.getDurationAsString()}`, 10000);
 
 			}
 		}
+		this.activeBase?.reIndexExercise()
 		this.activeExercise = undefined;
 		Object.values(this.bases[(this.activeBase as ExerciseBase).subject].excalidraws_).forEach(exc => ExcalidrawFile.createIDLinktextMapping(exc));
+		await this.activeBase?.save();
 	}
 
 	updateRuntimeBase(subject: SUBJECTS, actionType: "create" | "modify" | "delete", ct: ExerciseLinkText[] | Exercise){
