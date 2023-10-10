@@ -96,6 +96,25 @@ export class BaseModal extends Modal {
 		this.contentEl.createEl("h1",{text:"Exercise Base Selection"})
 
 		new Setting(this.contentEl)
+			.setName("Active Base")
+			.setDesc(`${this.cpu.activeBase ? `${this.cpu.activeBase?.subject}` : "No Running Base"}`)
+			.addTextArea(cb => {
+				cb.setValue(`${this.cpu.activeBase ? `${this.cpu.activeBase?.subject}` : "No Running Base"}`)
+			})
+
+		new Setting(this.contentEl)
+			.setName("Active Exercise")
+			.setDesc(`${this.cpu.activeExercise ?
+				`Active Exercise id: ${this.cpu.activeExercise?.id}` :
+				"No Running Exercise"}`)
+			.addTextArea(cb => {
+				cb.setValue(`${this.cpu.activeExercise ?
+					`Active Exercise id: ${this.cpu.activeExercise?.id}` :
+				"No Running Exercise"}`)
+			})
+
+
+		new Setting(this.contentEl)
 			.setName("Query Strategy")
 			.addDropdown(dp=>{
 				this.strategy = dp.addOptions(QUERY_STRATEGY_SWAPPED).getValue() as QUERY_STRATEGY

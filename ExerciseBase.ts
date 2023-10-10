@@ -6,7 +6,7 @@ import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
 import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
 import {BaseContent, ExerciseInitData, SBaseMetadata} from "./src/base_version";
-import {EXERCISE_BASE, EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
+import {EXERCISE_BASE, EXERCISE_STATUSES, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -171,7 +171,8 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 				}
 				else {
 					const candidateExercises = this.exercises
-						.filter(ex => ex.id.split("@")[0] == this.activeContext_)
+						.filter(ex => ex.id.split("@")[0] == this.activeContext_
+							&& ex.state == EXERCISE_STATUSES.New)
 					return candidateExercises[Math.floor(Math.random() * candidateExercises.length)]
 				}
 		}
