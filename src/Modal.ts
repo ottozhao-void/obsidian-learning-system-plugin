@@ -120,6 +120,7 @@ export class BaseModal extends Modal {
 					})
 			}))
 
+
 		new Setting(this.contentEl)
 			.addButton(bt => {
 				bt
@@ -129,6 +130,17 @@ export class BaseModal extends Modal {
 						this.cpu.activeBase = this.cpu.bases[this.cv];
 						this.cpu.activeBase.strategy = this.strategy
 						this.close();
+					})
+			})
+		new Setting(this.contentEl)
+			.addButton(bt => {
+				bt
+					.setWarning()
+					.setButtonText("Quit Exercising")
+					.onClick(()=>{
+						this.cpu.activeBase = undefined;
+						this.close();
+
 					})
 			})
 	}
