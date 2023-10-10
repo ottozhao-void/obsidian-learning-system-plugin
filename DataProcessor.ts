@@ -1,10 +1,8 @@
 import {App, moment, Notice} from "obsidian";
-import {
-	ExerciseBase,
-} from "./ExerciseBase";
+import {ExerciseBase,} from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {ExcalidrawFile} from "./Excalidraw";
-import {DATE_FORMAT, EXERCISE_BASE, SUBJECTS} from "./src/constants";
+import {DATE_FORMAT, EXERCISE_BASE, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
 import {DataFile} from "./DataFile";
 import {DataModel} from "./DataModel";
 
@@ -58,7 +56,11 @@ export class DataProcessor{
 			// resulting in the change of their id and fail to retrieve their linktext.
 			if (linktext == undefined) new Notice(`There is no matched Linktext for exercise with id: ${this.activeExercise.id}`)
 			this.activeExercise.start_time = moment().valueOf();
-			await this.app_.workspace.openLinkText(linktext, linktext, true);
+			await this.app_.workspace.openLinkText(
+				linktext,
+				linktext,
+				this.activeBase.strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST
+				);
 		} else {
 			new Notice("next() failed to find the next exercise");
 		}

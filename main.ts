@@ -25,14 +25,12 @@ export default class MyPlugin extends Plugin {
 	deleteExerciseID: string
 
 	async onload() {
-		await this.loadSettings();
 		this.onExFileModifyRef =  this.app.vault.on("modify", this.onExcalidrawFileModify, this);
 		this.onExFileRenameRef = this.app.vault.on("rename",this.onExcalidrawFileRename,this);
 		setTimeout(async ()=>{
 			this.cpu = await DataProcessor.init(this.app);
 			this.baseModal = new BaseModal(this.app,this.cpu)
 		},1500);
-		this.addSettingTab(new LearningSystemSetting(this.app,this))
 
 		this.addCommand({
 			id: "switch-base",

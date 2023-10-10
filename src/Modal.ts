@@ -1,5 +1,11 @@
 import {App, Modal, Notice, Setting} from "obsidian";
-import {EXERCISE_STATUSES, EXERCISE_STATUSES_OPTION, EXERCISE_SUBJECT} from "./constants";
+import {
+	EXERCISE_STATUSES,
+	EXERCISE_STATUSES_OPTION,
+	EXERCISE_SUBJECT,
+	QUERY_STRATEGY,
+	QUERY_STRATEGY_SWAPPED
+} from "./constants";
 import {DataProcessor} from "../DataProcessor";
 import MyPlugin from "../main";
 import {ExerciseBase} from "../ExerciseBase";
@@ -79,6 +85,7 @@ export class AssessModal extends Modal {
 export class BaseModal extends Modal {
 	cpu: DataProcessor;
 	cv:string;
+	strategy: QUERY_STRATEGY;
 
 	constructor(app: App, cpu:DataProcessor){
 		super(app);
@@ -87,6 +94,16 @@ export class BaseModal extends Modal {
 
 	onOpen() {
 		this.contentEl.createEl("h1",{text:"Exercise Base Selection"})
+
+		new Setting(this.contentEl)
+			.setName("Query Strategy")
+			.addDropdown(dp=>{
+				this.strategy = dp.addOptions(QUERY_STRATEGY_SWAPPED).getValue() as QUERY_STRATEGY
+				dp
+					.onChange(async (value:QUERY_STRATEGY) => {
+						this.strategy = value
+					})
+			})
 
 		new Setting(this.contentEl)
 			.addDropdown((dp => {
@@ -110,6 +127,7 @@ export class BaseModal extends Modal {
 					.setButtonText("Confirm")
 					.onClick(()=>{
 						this.cpu.activeBase = this.cpu.bases[this.cv];
+						this.cpu.activeBase.strategy = this.strategy
 						this.close();
 					})
 			})

@@ -38,8 +38,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	exercises: Exercise[] = [];
 
-	// exists: boolean;
-
+	activeContext_: string = '';
 
 	constructor(app: App, baseMetadata: ExerciseInitData | SBaseMetadata) {
 		super(app,baseMetadata.path);
@@ -159,25 +158,42 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	}
 
 	next(): Exercise | undefined {
-		let randomExerciseIndex: number = -1;
-		if (this.strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST) {
-			const newExercisesIndexes = this.exercises
-				.map((ex) => ex.state == EXERCISE_STATUSES.New? ex.index : -1)
-				.filter((index) => index !== -1);
+		switch (this.strategy) {
+			case QUERY_STRATEGY.NEW_EXERCISE_FIRST:
+				return this.nextNewExerciseFirst()
+			case QUERY_STRATEGY.CLOSE_CONTEXT:
+				if (!this.activeContext_) {
+					const activeExercise = this.nextNewExerciseFirst();
+					activeExercise ?
+						this.setActiveContext(activeExercise) :
+						null;
+					return activeExercise
+				}
+				else {
+					const candidateExercises = this.exercises
+						.filter(ex => ex.id.split("@")[0] == this.activeContext_)
+					return candidateExercises[Math.floor(Math.random() * candidateExercises.length)]
+				}
+		}
+	}
 
-			// If no new exercises are found
-			if (newExercisesIndexes.length === 0) {
-				return;
-			}
-			randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
-			new Notice(`Exercise at ${randomExerciseIndex} is being pulled out.`,3000);
+	nextNewExerciseFirst():Exercise | undefined{
+		let randomExerciseIndex: number = -1;
+		const newExercisesIndexes = this.exercises
+			.map((ex) => ex.state == EXERCISE_STATUSES.New? ex.index : -1)
+			.filter((index) => index !== -1);
+
+		// If no new exercises are found
+		if (newExercisesIndexes.length === 0) {
+			return;
 		}
-		if (randomExerciseIndex != -1){
-			return this.exercises.splice(randomExerciseIndex, 1)[0];
-		}
-		if (this.strategy == QUERY_STRATEGY.CLOSE_CONTEXT){
-			new Notice("Close Context Selection Strategy is running!")
-		}
+		randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
+		new Notice(`Exercise at ${randomExerciseIndex} is being pulled out.`,3000);
+		if (randomExerciseIndex != -1) 	return this.exercises.splice(randomExerciseIndex, 1)[0];
+	}
+
+	setActiveContext(exercise: Exercise){
+		this.activeContext_ = exercise.id.split("@")[0]
 	}
 
 	static async migrateFromOBtoNB(app:App){
