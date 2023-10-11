@@ -3,7 +3,7 @@ import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {DataProcessor} from "./DataProcessor";
-import {DATE_FORMAT, EXERCISE_BASE, EXERCISE_SUBJECT, SUBJECTS} from "./src/constants";
+import {DATAFILE_DATE_FORMAT, EXERCISE_BASE, EXERCISE_SUBJECT, SUBJECTS} from "./src/constants";
 import {AssessModal, BaseModal, DeleteExerciseModal} from "./src/Modal";
 import {DEFAULT_SETTINGS, LearningSystemSetting, SystemSetting} from "./SystemSetting"
 

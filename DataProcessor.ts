@@ -2,9 +2,10 @@ import {App, moment, Notice} from "obsidian";
 import {ExerciseBase,} from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {ExcalidrawFile} from "./Excalidraw";
-import {DATE_FORMAT, EXERCISE_BASE, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
+import {DATAFILE_DATE_FORMAT, EXERCISE_BASE, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
 import {DataFile} from "./DataFile";
 import {DataModel} from "./DataModel";
+import {DailyNote} from "./src/DailyNote";
 
 
 export class DataProcessor{
@@ -19,11 +20,19 @@ export class DataProcessor{
 
 	activeExercise: Exercise | undefined;
 
+	dailyNote: DailyNote;
 
-	private constructor(app:App, bases: {[K: string]: ExerciseBase}, dataModel:DataModel) {
+
+	private constructor(
+		app:App,
+		bases: {[K: string]: ExerciseBase},
+		dataModel:DataModel,
+		dailyNote: DailyNote
+	) {
 		this.app_ = app;
 		this.bases = bases;
 		this.dataModel = dataModel;
+		this.dailyNote = dailyNote;
 	}
 
 	static async init(app:App){
@@ -40,10 +49,15 @@ export class DataProcessor{
 		}
 
 		// Init DataModel
-		const dataFilePath = DataFile.path(moment().format(DATE_FORMAT));
+		const dataFilePath = DataFile.path(moment().format(DATAFILE_DATE_FORMAT));
 		const dataModel: DataModel = await DataModel.init(app, dataFilePath, bases);
+		console.log(1)
 
-		return new DataProcessor(app,bases,dataModel);
+		// Init Daily Note
+		const dailyNote = new DailyNote();
+		console.log(dailyNote.path);
+
+		return new DataProcessor(app,bases,dataModel,dailyNote);
 	}
 
 	async run() {

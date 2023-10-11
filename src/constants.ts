@@ -2,7 +2,8 @@ import {ExerciseInitData} from "./base_version";
 import {normalizePath} from "obsidian";
 
 
-export const DATE_FORMAT = "YYYYMMDD"
+export const DAILYNOTE_DATE_FORMAT = "YYYY-MM-DD"
+export const DATAFILE_DATE_FORMAT = "YYYYMMDD"
 
 export const KEY_COMBINATIONS = {
 	Select_Exercise: "ctrl+shift+A",

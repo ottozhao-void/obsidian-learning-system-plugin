@@ -4,7 +4,7 @@ import {getAPI} from "obsidian-dataview";
 import yaml from "js-yaml";
 import {DayMetadata_Latest, DayMetadata_V0, SubjectMetadata} from "./src/dailyData_version";
 import {ExerciseBase} from "./ExerciseBase";
-import {DATE_FORMAT, SUBJECTS} from "./src/constants";
+import {DATAFILE_DATE_FORMAT, SUBJECTS} from "./src/constants";
 import {parseFrontmatter} from "./src/utility/parser";
 
 
@@ -77,7 +77,7 @@ export class DataFile implements DayMetadata_Latest{
 	plan: number = 0;
 	totalFocusTime: number = 0;
 
-	private _path_: string = normalizePath(`🗓️Daily notes/DATA-${moment().format(DATE_FORMAT)}.md`)
+	private _path_: string = normalizePath(`🗓️Daily notes/DATA-${moment().format(DATAFILE_DATE_FORMAT)}.md`)
 	app_: App;
 	dv_: DataviewApi | undefined;
 
@@ -119,7 +119,7 @@ export class DataFile implements DayMetadata_Latest{
 		let d = 1;
 		let filepath = "";
 		do {
-			const date = moment().subtract(d,"day").format(DATE_FORMAT)
+			const date = moment().subtract(d,"day").format(DATAFILE_DATE_FORMAT)
 			filepath = DataFile.path(date);
 			d++;
 		} while (!(await app.vault.adapter.exists(filepath)));
