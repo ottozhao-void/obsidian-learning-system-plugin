@@ -40,6 +40,10 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	activeContext_: string = '';
 
+	exerciseContext_: Set<string> = new Set<string>();
+
+	contextOptions_: Record<string, string>
+
 	constructor(app: App, baseMetadata: ExerciseInitData | SBaseMetadata) {
 		super(app,baseMetadata.path);
 		this.dataViewAPI_ = getAPI() as DataviewApi;
@@ -94,32 +98,6 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		const data = this.jsonify();
 		await this.app_.vault.adapter.write(this.path, data);
 	}
-
-	static async read(app:App, path:string): Promise<ExerciseBase>{
-		let baseJSON: SBaseMetadata = parseJSON(await app.vault.adapter.read(normalizePath(path)))
-		return ExerciseBase.fromJSON(app, baseJSON);
-	}
-
-	static async create(app:App, subject: string): Promise<ExerciseBase>{
-		const base = new ExerciseBase(app, EXERCISE_BASE[subject])
-		await base.initIndex();
-		await base.save();
-		return base;
-	}
-
-	static async fromJSON(app:App, obj: SBaseMetadata): Promise<ExerciseBase> {
-		obj.exercises = obj.exercises.map(ex => Exercise.fromJSON(app,ex))
-		let base: ExerciseBase = new ExerciseBase(app, obj);
-		await base.indexExcalidraw();
-		return base;
-	}
-
-	static async deleteExerciseFromBaseFile(base:ExerciseBase, id: string){
-		base.exercises = base.exercises.filter(ex => ex.id !== id);
-		base.size = base.exercises.length;
-		await base.save()
-	}
-
 	reIndexExercise(){
 		new Notice(`Indexing Exercise Base - ${this.subject}`);
 		this.exercises.forEach((ex,index) => {ex.index = index})
@@ -149,6 +127,43 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		}
 		this.size = this.exercises.length;
 		this.items_completed = this.calculateItemCompleted();
+	}
+
+	static async read(app:App, path:string): Promise<ExerciseBase>{
+		let baseJSON: SBaseMetadata = parseJSON(await app.vault.adapter.read(normalizePath(path)))
+		return ExerciseBase.fromJSON(app, baseJSON);
+	}
+
+	static async create(app:App, subject: string): Promise<ExerciseBase>{
+		const base = new ExerciseBase(app, EXERCISE_BASE[subject])
+		await base.initIndex();
+		await base.save();
+		return base;
+	}
+
+	static async fromJSON(app:App, obj: SBaseMetadata): Promise<ExerciseBase> {
+		obj.exercises = obj.exercises.map(ex => Exercise.fromJSON(app,ex))
+		let base: ExerciseBase = new ExerciseBase(app, obj);
+		await base.indexExcalidraw();
+		base.pullContext();
+		base.contextOptions_ = Object.fromEntries(
+			Array.from(base.exerciseContext_)
+				.map(item => [item,item])
+		)
+
+		return base;
+	}
+
+	static async deleteExerciseFromBaseFile(base:ExerciseBase, id: string){
+		base.exercises = base.exercises.filter(ex => ex.id !== id);
+		base.size = base.exercises.length;
+		await base.save()
+	}
+
+	pullContext() {
+		this.exercises.forEach(ex => {
+			this.exerciseContext_.add(ex.id.split(ExcalidrawFile.id_separator)[0]);
+		})
 	}
 
 	calculateItemCompleted(): number{
