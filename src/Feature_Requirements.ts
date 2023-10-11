@@ -1,15 +1,14 @@
 
+// TODO 一个保存上次Context的系统（可以是Setting, 或者直接保存在Base File里）
+
+// TODO 一个清除上次Context的系统
 
 // TODO To implement a system that could let me specify which type of exercise ("New", "Drifter", "Stumble"....) I would
 //  like to do this time
 
-// TODO Create a modal that shows metadata of the active base and active exercise
-
 // TODO Create a class (called something like writer) to be responsible for file I/O
 
 // TODO 我感觉我接下来的这个想法是不是有点"过分"？ 就是相当于，我想将文字描述，通过语料库数据化，然后可以在日后检查库内是否存在语义相似的文字，可能提取出一些有用的信息？
-
-// TODO 图表：要画一个天数为横轴，纵轴为每日某个科目每个题目的平均时间（我估计着，平均时间应该逐日下降）。
 
 // TODO 是不是可以设计一个专门用于展示各类信息的Class Render? 比如当作一个已经做过的题目时，可以将以前做题时的感受给展示出来，从而可能避免丢失一些东西。
 
