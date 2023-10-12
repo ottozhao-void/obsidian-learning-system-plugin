@@ -62,7 +62,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 			})
 			this.excalidraws_[name].previeousExerciseArray = this.excalidraws_[name].exerciseArray;
 			this.excalidraws_[name].idLinktextMapping = ExcalidrawFile.createIDLinktextMapping(this.excalidraws_[name]);
-1		}
+		}
 	}
 
 	async initIndex(){

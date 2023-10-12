@@ -1,9 +1,11 @@
 import {
 	App,
-	moment,
+	moment, Notice,
 } from 'obsidian';
 import {ExerciseHistory, ExerciseMetadata_Latest} from "./src/exercise_version";
-import {EXERCISE_STATUSES, EXERCISE_SUBJECT, SUBJECTS} from "./src/constants";
+import {EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
+import {ExerciseBase} from "./ExerciseBase";
+import {ExcalidrawFile} from "./Excalidraw";
 
 export type ExerciseLinkText = string;
 
@@ -85,6 +87,21 @@ export class Exercise implements ExerciseMetadata_Latest{
 
 	getWikiLink():string{
 		return `[[${this.source}]]`
+	}
+
+	async open (base:ExerciseBase){
+		const linktext = base
+			.excalidraws_[this.id.split(ExcalidrawFile.id_separator)[0]]
+			.idLinktextMapping[this.id];
+		// This If statement checks for exercises already created but their position are changed accidentally
+		// resulting in the change of their id and fail to retrieve their linktext.
+		if (linktext == undefined) new Notice(`There is no matched Linktext for exercise with id: ${this.id}`)
+		this.start_time = moment().valueOf();
+		await this.app_.workspace.openLinkText(
+			linktext,
+			linktext,
+			base.strategy == QUERY_STRATEGY.NEW_EXERCISE_FIRST
+		);
 	}
 
 	static fromJSON(app:App, data: ExerciseMetadata_Latest): Exercise {
