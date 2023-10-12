@@ -101,6 +101,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	reIndexExercise(){
 		new Notice(`Indexing Exercise Base - ${this.subject}`);
 		this.exercises.forEach((ex,index) => {ex.index = index})
+		this.size = this.exercises.length;
 	}
 
 	update(actionType: "create" | "modify" | "delete", ct: ExerciseLinkText[] | Exercise) {
@@ -160,6 +161,23 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		await base.save()
 	}
 
+	// static checkForDuplicate(base: ExerciseBase){
+	// 	let duplicateItems: string[] = [];
+	// 	let uniqueItems = new Set<string>();
+	//
+	//
+	// 	// for (let exercise of base.exercises) {
+	// 	// 	if (uniqueItems.has(exercise.id)) base.exercises.splice(exercise.index,1);
+	// 	// 	else uniqueItems.add(exercise.id);
+	// 	// }
+	//
+	// 	for (let exercise of base.exercises) {
+	// 		if (uniqueItems.has(exercise.id)) duplicateItems.push(exercise.id);
+	// 		else uniqueItems.add(exercise.id);
+	// 	}
+	// 	console.log(duplicateItems);
+	// }
+
 	pullContext() {
 		this.exercises.forEach(ex => {
 			this.exerciseContext_.add(ex.id.split(ExcalidrawFile.id_separator)[0]);
@@ -188,7 +206,11 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 					const candidateExercises = this.exercises
 						.filter(ex => ex.id.split("@")[0] == this.activeContext_
 							&& ex.state == EXERCISE_STATUSES.New)
-					return candidateExercises[Math.floor(Math.random() * candidateExercises.length)]
+					if (candidateExercises.length !== 0) {
+						const nextExercise = candidateExercises[Math.floor(Math.random() * candidateExercises.length)];
+						this.exercises.splice(nextExercise.index,1)
+						return nextExercise
+					}
 				}
 		}
 	}
@@ -204,7 +226,6 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 			return;
 		}
 		randomExerciseIndex = newExercisesIndexes[Math.floor(Math.random() * newExercisesIndexes.length)];
-		new Notice(`Exercise at ${randomExerciseIndex} is being pulled out.`,3000);
 		if (randomExerciseIndex != -1) 	return this.exercises.splice(randomExerciseIndex, 1)[0];
 	}
 
