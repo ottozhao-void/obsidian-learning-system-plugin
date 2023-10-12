@@ -2,8 +2,8 @@ import {
 	App,
 	moment, Notice,
 } from 'obsidian';
-import {ExerciseHistory, ExerciseMetadata_Latest} from "./src/exercise_version";
-import {EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
+import {ExerciseHistory, ExerciseMetadata_Latest} from "./version/exercise_version";
+import {EXERCISE_STATUSES, EXERCISE_SUBJECT, QUERY_STRATEGY, SUBJECTS} from "./constants";
 import {ExerciseBase} from "./ExerciseBase";
 import {ExcalidrawFile} from "./Excalidraw";
 

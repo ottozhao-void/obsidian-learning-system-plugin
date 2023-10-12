@@ -6,17 +6,17 @@ import {
 	QUERY_STRATEGY,
 	QUERY_STRATEGY_SWAPPED
 } from "./constants";
-import {DataProcessor} from "../DataProcessor";
-import MyPlugin from "../main";
-import {ExerciseBase} from "../ExerciseBase";
+import {ControlUnit} from "./ControlUnit";
+import LearningSystemPlugin from "./main";
+import {ExerciseBase} from "./ExerciseBase";
 
 
 export class AssessModal extends Modal {
 	status: EXERCISE_STATUSES;
-	cpu: DataProcessor
+	cpu: ControlUnit
 	remark: string;
 
-	constructor(app:App,cpu: DataProcessor) {
+	constructor(app:App,cpu: ControlUnit) {
 		super(app);
 		this.cpu = cpu;
 	}
@@ -83,10 +83,10 @@ export class AssessModal extends Modal {
 }
 
 export class BaseModal extends Modal {
-	cpu: DataProcessor;
+	cpu: ControlUnit;
 	subjectOption: string;
 
-	constructor(app: App, cpu: DataProcessor) {
+	constructor(app: App, cpu: ControlUnit) {
 		super(app);
 		this.cpu = cpu;
 	}
@@ -216,10 +216,10 @@ export class BaseModal extends Modal {
 
 export class DeleteExerciseModal extends Modal {
 	result: string
-	plugin: MyPlugin
+	plugin: LearningSystemPlugin
 	option:string
 
-	constructor(app:App, plugin:MyPlugin) {
+	constructor(app:App, plugin:LearningSystemPlugin) {
 		super(app);
 		this.plugin = plugin
 	}

@@ -2,10 +2,10 @@ import {App, moment, normalizePath, TFile} from "obsidian";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import yaml from "js-yaml";
-import {DayMetadata_Latest, DayMetadata_V0, SubjectMetadata} from "./src/dailyData_version";
+import {DayMetadata_Latest, DayMetadata_V0, SubjectMetadata} from "./version/dailyData_version";
 import {ExerciseBase} from "./ExerciseBase";
-import {DATE_FORMAT, SUBJECTS} from "./src/constants";
-import {parseFrontmatter} from "./src/utility/parser";
+import {DATE_FORMAT, SUBJECTS} from "./constants";
+import {parseFrontmatter} from "./utility/parser";
 
 
 export class DataFile implements DayMetadata_Latest{

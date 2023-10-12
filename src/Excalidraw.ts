@@ -2,8 +2,8 @@ import {App, EventRef, normalizePath, Notice, TAbstractFile, TFile} from "obsidi
 import {GenericFile} from "./GenericFile";
 import {ExerciseBase} from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
-import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
-import {SUBJECTS} from "./src/constants";
+import {parseJSON} from "./utility/parser";
+import {SUBJECTS} from "./constants";
 
 export interface ExcalidrawJSON {
 	elements: ExcalidrawElement[];
@@ -24,9 +24,8 @@ export const EXERCISE_BOX: Partial<ExcalidrawElement> = {
 }
 
 interface ExcalidrawMetadata {
+	name: string
 	subject: string;
-	currentContent?: string;
-	elements?: ExcalidrawElement[];
 	path: string;
 }
 
@@ -41,13 +40,23 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 
 	path: string;
 
-	previeousExerciseArray: Set<ExerciseLinkText>;
+	previousExerciseArray: Set<ExerciseLinkText>;
 
 	idLinktextMapping: Record<string, ExerciseLinkText>;
 	// linktextIDMapping: ;
 
 	static id_separator = "@"
 
+	get exerciseArray(){
+		return new Set(this.exerciseLinkText)
+	}
+
+	get exerciseLinkText(){
+		return this.elements
+			.filter(el => el.strokeColor === EXERCISE_BOX.strokeColor
+				&& el.type === EXERCISE_BOX.type && !el.isDeleted)
+			.map(el => `${this.name}#^${el.id}`)
+	}
 	// 现在读取Excalidraw文件的目的只是读取其内部的Excalidraw Elements
 	static async read(app:App, path:string): Promise<ExcalidrawElement[]> {
 		// Get Excalidraw Content
@@ -77,10 +86,18 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 		await app.vault.adapter.write(normalizePath(excalidraw.path), modifiedData);
 	}
 
-	constructor(app:App, name:string, excalidrawFileInfo: ExcalidrawMetadata) {
-		super(app, excalidrawFileInfo.path)
-		this.name = name;
-		Object.assign(this,excalidrawFileInfo);
+	constructor(app:App, excalidrawFileMetadata: ExcalidrawMetadata) {
+		super(app, excalidrawFileMetadata.path)
+		this.name = excalidrawFileMetadata.name;
+		Object.assign(this,excalidrawFileMetadata);
+	}
+
+	static async fromExcalidrawMetadata(app: App, excalidrawFileMetadata: ExcalidrawMetadata): Promise<ExcalidrawFile>{
+		const excalidraw = new ExcalidrawFile(app,excalidrawFileMetadata);
+		excalidraw.elements = await ExcalidrawFile.read(app,excalidrawFileMetadata.path);
+		excalidraw.previousExerciseArray = excalidraw.exerciseArray;
+		excalidraw.idLinktextMapping = ExcalidrawFile.createIDLinktextMapping(excalidraw);
+		return excalidraw
 	}
 
 	get linktextIDMapping(): Record<ExerciseLinkText, string>{
@@ -90,14 +107,13 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 	}
 
 	filterForNewExercise(): ExerciseLinkText[] {
-		return Array.from(this.exerciseArray).filter(ex => !this.previeousExerciseArray.has(ex));
+		return Array.from(this.exerciseArray).filter(ex => !this.previousExerciseArray.has(ex));
 	}
 	filterForDeletedExercise(): ExerciseLinkText[] {
-		return Array.from(this.previeousExerciseArray).filter(ex => !this.exerciseArray.has(ex));
+		return Array.from(this.previousExerciseArray).filter(ex => !this.exerciseArray.has(ex));
 	}
-	get exerciseArray(){
-		return new Set(getExerciseLinkText(this))
-	}
+
+
 }
 
 

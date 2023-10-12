@@ -4,9 +4,9 @@ import {App, normalizePath, Notice} from "obsidian";
 import {ExcalidrawFile} from "./Excalidraw";
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {GenericFile} from "./GenericFile";
-import {getExerciseLinkText, parseJSON} from "./src/utility/parser";
-import {BaseContent, ExerciseInitData, SBaseMetadata} from "./src/base_version";
-import {EXERCISE_BASE, EXERCISE_STATUSES, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
+import {parseJSON} from "./utility/parser";
+import {BaseContent, ExerciseInitData, SBaseMetadata} from "./version/base_version";
+import {EXERCISE_BASE, EXERCISE_STATUSES, QUERY_STRATEGY, SUBJECTS} from "./constants";
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -50,27 +50,27 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		Object.assign(this, baseMetadata);
 	}
 
+	// This function finds all excalidraw files with this.tag and read them
 	async indexExcalidraw(){
 		const targetExcalidrawPages: DataArray<Record<string, Literal>> = this.dataViewAPI_?.pages(this.tag) as DataArray<Record<string, Literal>>;
 		for (let page of targetExcalidrawPages){
 			const name = page.file.name;
 			const path = page.file.path;
-			this.excalidraws_[name] = new ExcalidrawFile(this.app_,name,{
+			this.excalidraws_[name] = await ExcalidrawFile.fromExcalidrawMetadata(this.app_, {
+				name,
 				subject: this.subject,
-				path,
-				elements: await ExcalidrawFile.read(this.app_,path)
+				path
 			})
-			this.excalidraws_[name].previeousExerciseArray = this.excalidraws_[name].exerciseArray;
-			this.excalidraws_[name].idLinktextMapping = ExcalidrawFile.createIDLinktextMapping(this.excalidraws_[name]);
 		}
 	}
 
+	// This function is invoked when the base files are first created
 	async initIndex(){
 		// Index Excalidraw Files
 		await this.indexExcalidraw();
 
 		// Index Exercises
-		const exerciseLinkArray = Object.values(this.excalidraws_).flatMap((excal) => getExerciseLinkText(excal));
+		const exerciseLinkArray = Object.values(this.excalidraws_).flatMap((excal) => excal.exerciseLinkText);
 
 		this.exercises.push(...exerciseLinkArray.map((el,index) => this.createNewExercise(el,index, 0)))
 
@@ -98,6 +98,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		const data = this.jsonify();
 		await this.app_.vault.adapter.write(this.path, data);
 	}
+
 	reIndexExercise(){
 		new Notice(`Indexing Exercise Base - ${this.subject}`);
 		this.exercises.forEach((ex,index) => {ex.index = index})

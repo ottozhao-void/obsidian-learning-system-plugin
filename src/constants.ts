@@ -1,4 +1,4 @@
-import {ExerciseInitData} from "./base_version";
+import {ExerciseInitData} from "./version/base_version";
 import {normalizePath} from "obsidian";
 
 

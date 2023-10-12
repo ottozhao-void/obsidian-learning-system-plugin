@@ -2,12 +2,12 @@ import {App, moment, Notice} from "obsidian";
 import {ExerciseBase,} from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {ExcalidrawFile} from "./Excalidraw";
-import {DATE_FORMAT, EXERCISE_BASE, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
+import {DATE_FORMAT, EXERCISE_BASE, QUERY_STRATEGY, SUBJECTS} from "./constants";
 import {DataFile} from "./DataFile";
 import {DataModel} from "./DataModel";
 
 
-export class DataProcessor{
+export class ControlUnit {
 	app_: App;
 	// The statfile should be the runtime Object of the actual Obsidian note that store the data.
 
@@ -43,12 +43,11 @@ export class DataProcessor{
 		const dataFilePath = DataFile.path(moment().format(DATE_FORMAT));
 		const dataModel: DataModel = await DataModel.init(app, dataFilePath, bases);
 
-		return new DataProcessor(app,bases,dataModel);
+		return new ControlUnit(app,bases,dataModel);
 	}
 
 	async run() {
 		this.activeExercise = this.activeBase?.next();
-		console.log(this.activeExercise);
 		this.activeExercise ?
 			await this.activeExercise.open(<ExerciseBase>this.activeBase) :
 			new Notice("next() failed to find the next exercise");

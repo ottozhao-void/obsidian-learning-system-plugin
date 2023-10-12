@@ -1,4 +1,4 @@
-import {EXERCISE_BASE, EXERCISE_SUBJECT} from "./constants";
+import {EXERCISE_BASE, EXERCISE_SUBJECT} from "../constants";
 
 
 export interface DayMetadata_V0 {
