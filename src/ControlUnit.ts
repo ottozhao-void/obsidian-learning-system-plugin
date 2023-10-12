@@ -2,13 +2,13 @@ import {App, moment, Notice} from "obsidian";
 import {ExerciseBase,} from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {ExcalidrawFile} from "./Excalidraw";
-import {DATAFILE_DATE_FORMAT, EXERCISE_BASE, QUERY_STRATEGY, SUBJECTS} from "./src/constants";
+import {DATAFILE_DATE_FORMAT, EXERCISE_BASE, QUERY_STRATEGY, SUBJECTS} from "./constants";
 import {DataFile} from "./DataFile";
 import {DataModel} from "./DataModel";
 import {DailyNote} from "./src/DailyNote";
 
 
-export class DataProcessor{
+export class ControlUnit {
 	app_: App;
 	// The statfile should be the runtime Object of the actual Obsidian note that store the data.
 
@@ -51,13 +51,12 @@ export class DataProcessor{
 		// Init DataModel
 		const dataFilePath = DataFile.path(moment().format(DATAFILE_DATE_FORMAT));
 		const dataModel: DataModel = await DataModel.init(app, dataFilePath, bases);
-		console.log(1)
 
 		// Init Daily Note
 		const dailyNote = new DailyNote();
 		console.log(dailyNote.path);
 
-		return new DataProcessor(app,bases,dataModel,dailyNote);
+		return new ControlUnit(app,bases,dataModel,dailyNote);
 	}
 
 	async run() {

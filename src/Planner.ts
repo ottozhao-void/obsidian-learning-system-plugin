@@ -1,6 +1,6 @@
 // import {App} from "obsidian";
 // import {EXERCISE_BASE, ExerciseBase, EXERCISE_SUBJECT} from "./ExerciseBase";
-// import {StatFile} from "./DataProcessor";
+// import {StatFile} from "./ControlUnit";
 //
 // const COUNT_TEMPLATE = "return `${subject}_exercises:`"
 //

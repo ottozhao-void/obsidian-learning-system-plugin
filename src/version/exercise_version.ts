@@ -1,4 +1,4 @@
-import {EXERCISE_STATUSES} from "./constants";
+import {EXERCISE_STATUSES} from "../constants";
 
 export interface ExerciseMetadata_V0 {
 	lastRemark: string;

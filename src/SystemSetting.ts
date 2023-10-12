@@ -1,6 +1,6 @@
 import {App, Notice, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
-import {QUERY_STRATEGY, QUERY_STRATEGY_SWAPPED} from "./src/constants";
+import LearningSystemPlugin from "./main";
+import {QUERY_STRATEGY, QUERY_STRATEGY_SWAPPED} from "./constants";
 
 export interface SystemSetting {
 	Strategy: QUERY_STRATEGY
@@ -12,9 +12,9 @@ export const DEFAULT_SETTINGS:SystemSetting = {
 
 
 export class LearningSystemSetting extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: LearningSystemPlugin;
 
-	constructor(app_: App, plugin: MyPlugin) {
+	constructor(app_: App, plugin: LearningSystemPlugin) {
 		super(app_, plugin);
 		this.plugin = plugin;
 	}

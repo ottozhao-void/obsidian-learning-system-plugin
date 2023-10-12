@@ -1,8 +1,8 @@
 import {App, moment, Notice} from "obsidian";
 import * as ss from 'simple-statistics'
-import {EXERCISE_SUBJECT, GEE_EXERCISE_NUMBER, SUBJECTS} from "./src/constants";
+import {EXERCISE_SUBJECT, GEE_EXERCISE_NUMBER, SUBJECTS} from "./constants";
 import {DataFile} from "./DataFile";
-import {SubjectMetadata} from "./src/dailyData_version";
+import {SubjectMetadata} from "./version/dailyData_version";
 import {ExerciseBase} from "./ExerciseBase";
 
 export class DataModel {
