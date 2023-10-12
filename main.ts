@@ -6,6 +6,8 @@ import {DataProcessor} from "./DataProcessor";
 import {DATE_FORMAT, EXERCISE_BASE, EXERCISE_SUBJECT, SUBJECTS} from "./src/constants";
 import {AssessModal, BaseModal, DeleteExerciseModal} from "./src/Modal";
 import {DEFAULT_SETTINGS, LearningSystemSetting, SystemSetting} from "./SystemSetting"
+import {ExerciseBase} from "./ExerciseBase";
+import {parseJSON} from "./src/utility/parser";
 
 // Remember to rename these classes and interfaces!
 
@@ -30,7 +32,7 @@ export default class MyPlugin extends Plugin {
 		setTimeout(async ()=>{
 			this.cpu = await DataProcessor.init(this.app);
 			this.baseModal = new BaseModal(this.app,this.cpu)
-		},1500);
+		},1500); 
 
 		this.addCommand({
 			id: "switch-base",
@@ -85,16 +87,25 @@ export default class MyPlugin extends Plugin {
 		}
 		})
 
-		//  这个reload all bases的目的是为了在直接修改了库文件后，保证库文件的修改可以及时
-		// 反馈到Runtime Base里面，但这个有必要吗？ 因为，我决定以后只能通过修改Runtime Base，
+		this.addCommand({
+			id: "reload-all-bases",
+			name: "Reload All Bases",
+			callback: async () => {
+				for (let subject of Object.keys(EXERCISE_BASE)) {
+					const path = EXERCISE_BASE[subject].path;
+					let baseJSON = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
+					this.cpu.bases[subject] = await ExerciseBase.fromJSON(this.app,baseJSON);
+				}
+			}
+		})
+
 		// this.addCommand({
-		// 	id: "reload-all-bases",
-		// 	name: "Reload All Bases",
-		// 	callback: async () => {
+		// 	id: "check-for-duplicate",
+		// 	name:"Check-For-Duplicates",
+		// 	callback: () => {
 		// 		for (let subject of Object.keys(EXERCISE_BASE)) {
-		// 			const path = EXERCISE_BASE[subject].path;
-		// 			let baseJSON: SBaseMetadata = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
-		// 			this.cpu.bases[subject] = await ExerciseBase.fromJSON(this.app,baseJSON);
+		// 			console.log(`Checking for ${subject}`)
+		// 			ExerciseBase.checkForDuplicate(this.cpu.bases[subject]);
 		// 		}
 		// 	}
 		// })
@@ -109,7 +120,7 @@ export default class MyPlugin extends Plugin {
 				}
 				else {
 					if (this.cpu.activeExercise) {
-						new Notice("An active exercise is running!")
+						new Notice(`Exercise: ${this.cpu.activeExercise.id} is running.`)
 					}
 					else {
 						this.cpu.run();
@@ -140,7 +151,6 @@ export default class MyPlugin extends Plugin {
 			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.POLITICS]
 			.excalidraws_[fileName];
 		// new Notice(`${file.name} Changed!`, 3000);
-		new Notice(`Type of the excalidraw file being pulled out is ${typeof excalidrawFile}`);
 		if (excalidrawFile) {
 			const subject: SUBJECTS = excalidrawFile.subject;
 			excalidrawFile.elements = await ExcalidrawFile.read(this.app, excalidrawFile.path);
