@@ -110,33 +110,20 @@ export default class MyPlugin extends Plugin {
 		// 	}
 		// })
 
-		// If the plugin hooks up any global DOM events (on parts of the app_ that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
+
+		// Register Keyboard Event
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {
-				if(!this.cpu.activeBase) {
-					new Notice("No Base is selected!")
-					this.baseModal.open();
-				}
-				else {
-					if (this.cpu.activeExercise) {
-						new Notice(`Exercise: ${this.cpu.activeExercise.id} is running.`)
-					}
-					else {
-						this.cpu.run();
-					}
-				}
-
+				this.cpu.activeBase ?
+					this.cpu.activeExercise ?
+						new Notice(`Exercise: ${this.cpu.activeExercise.id} is running.`) :
+						this.cpu.run() :
+					this.baseModal.open()
 			}
-		});
-
-		this.registerDomEvent(document, 'keydown', (ev) => {
-			if (ev.ctrlKey && ev.shiftKey && ev.key == "S") {
-				if(!this.cpu.activeExercise) new Notice("Currently, No Exercise is active!")
-				else {
-					new AssessModal(this.app,this.cpu).open()
-					new Notice("Successfully closed the active exercise")
-				}
+			else if (ev.ctrlKey && ev.shiftKey && ev.key == "S") {
+				this.cpu.activeExercise ?
+					new AssessModal(this.app,this.cpu).open() :
+					new Notice("Currently, No Exercise is active!")
 			}
 		});
 	}
