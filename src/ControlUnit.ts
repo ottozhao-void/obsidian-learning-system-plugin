@@ -5,7 +5,7 @@ import {ExcalidrawFile} from "./Excalidraw";
 import {DATAFILE_DATE_FORMAT, EXERCISE_BASE, QUERY_STRATEGY, SUBJECTS} from "./constants";
 import {DataFile} from "./DataFile";
 import {DataModel} from "./DataModel";
-import {DailyNote} from "./src/DailyNote";
+import {DailyNote} from "./DailyNote";
 
 
 export class ControlUnit {

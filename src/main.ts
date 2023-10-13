@@ -148,8 +148,7 @@ export default class LearningSystemPlugin extends Plugin {
 		if (excalidrawFile) {
 			// Update excalidraw elements
 			excalidrawFile.elements = await ExcalidrawFile.read(this.app, excalidrawFile.path);
-			new Notice(`Previous number of exercises in excalidrawFile file: ${excalidrawFile.previousExerciseArray.size}\n\n
-			Current number of exercises in excalidrawFile file: ${excalidrawFile.exerciseArray.size}`, 2000);
+			new Notice(`Previous number of exercises in excalidrawFile file: ${excalidrawFile.previousExerciseArray.size}\n\nCurrent number of exercises in excalidrawFile file: ${excalidrawFile.exerciseArray.size}`, 2000);
 
 			const newLTArray = excalidrawFile.filterForNewExercise();
 			const deletedLTArray = excalidrawFile.filterForDeletedExercise().map(linktext => excalidrawFile.linktextIDMapping[linktext]);
