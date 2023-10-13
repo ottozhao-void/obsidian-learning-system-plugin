@@ -53,8 +53,7 @@ export class ControlUnit {
 		const dataModel: DataModel = await DataModel.init(app, dataFilePath, bases);
 
 		// Init Daily Note
-		const dailyNote = new DailyNote();
-		console.log(dailyNote.path);
+		const dailyNote = await DailyNote.init(app);
 
 		return new ControlUnit(app,bases,dataModel,dailyNote);
 	}
@@ -76,6 +75,11 @@ export class ControlUnit {
 
 				// Update the Runtime Exercise Object
 				this.activeExercise.close();
+
+				await this.dailyNote.writeToDailyNote(
+					this.activeExercise.getStartTime().valueOf(),
+					this.activeExercise.getEndTime().valueOf()
+				);
 
 				// Update the Runtime Base Object
 				this.updateRuntimeBase(this.activeExercise.subject, "modify", this.activeExercise); // Save Exercises
