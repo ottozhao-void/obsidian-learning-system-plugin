@@ -106,6 +106,8 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 		)
 	}
 
+
+
 	filterForNewExercise(): ExerciseLinkText[] {
 		return Array.from(this.exerciseArray).filter(ex => !this.previousExerciseArray.has(ex));
 	}

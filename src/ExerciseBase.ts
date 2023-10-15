@@ -190,6 +190,13 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		this.exercises.forEach((ex)=> (ex.state == EXERCISE_STATUSES.Laser ? num++ : -1))
 		return  num;
 	}
+	// This function checks if a exercise is in the base
+	// param: id: string
+	// return: boolean
+	isInBase(id: string): boolean{
+		return this.exercises.some(ex => ex.id == id);
+	}
+
 
 	next(): Exercise | undefined {
 		switch (this.strategy) {

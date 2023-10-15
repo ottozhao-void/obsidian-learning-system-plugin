@@ -1,5 +1,5 @@
 import {EventRef, normalizePath, Notice, Plugin, TAbstractFile} from 'obsidian';
-import {ExcalidrawFile} from "./Excalidraw";
+import { ExcalidrawFile } from './Excalidraw';
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
 import {ControlUnit} from "./ControlUnit";
@@ -34,6 +34,102 @@ export default class LearningSystemPlugin extends Plugin {
 			this.cpu = await ControlUnit.init(this.app);
 			this.baseModal = new BaseModal(this.app,this.cpu)
 		},1500);
+		
+				// A Command to extract the clipboard conetent and use checkExerciseInBase to check if an exercise is present in the base.
+		this.addCommand({
+			id: "check-exercise-in-base-clipboard",
+			name: "Check Exercise in Base from Clipboard",
+			callback: async () => {
+
+				// Get the current active file from the app and
+				// then get the excalidraw file corresponding to the active file
+				const activeFile = this.app.workspace.getActiveFile();
+				if (!activeFile) {
+					new Notice("No active file");
+					return;
+				}
+				const excalidrawFile = this.getExcalidrawFile(activeFile);
+				if (excalidrawFile) {
+
+					const elements = JSON.parse(await navigator.clipboard.readText()).elements;
+					const xy = Math.ceil(Math.abs(elements[0].x) + Math.abs(elements[0].y))
+
+					const exerciseID = `${excalidrawFile.name}${ExcalidrawFile.id_separator}${xy}`;
+					// Use the xy and search all exercises of the base to see if there is a match
+					if (!this.cpu.bases[excalidrawFile.subject].isInBase(exerciseID)) {
+					  console.error(`Exercise with xy: ${xy} is not in the base`);
+					}
+					else {
+						console.log(`Exercise with xy: ${xy} is in the base`);
+					}
+				}
+			}
+		})
+
+		// A Command just like the above command, but this time it is checking the active excalidraw file
+		// to see if all the exercises of the excalidraw file are in the base, if not, it will print out
+		// the missing exercises.
+		this.addCommand({
+			id: "check-exercise-in-base-excalidraw",
+			name: "Check Exercise in Base from the active Excalidraw",
+			callback: async () => {
+				// Get the current active file from the app and
+				// then get the excalidraw file corresponding to the active file
+				const activeFile = this.app.workspace.getActiveFile();
+				if (!activeFile) {
+					new Notice("No active file");
+					return;
+				}
+				const excalidrawFile = this.getExcalidrawFile(activeFile);
+				if (excalidrawFile) {
+									// get base
+				const base = this.cpu.bases[excalidrawFile.subject];
+				// get id of all exercises of the base
+				const idSetForBase = new Set(Object.values(base.exercises).map(ex => ex.id));
+
+				Object.keys(excalidrawFile.idLinktextMapping).forEach(id => {
+					if (!idSetForBase.has(id)) {
+						console.error(`Exercise with id: ${id} is not in the base`);
+					}
+					else {
+						console.log(`Exercise with id: ${id} is in the base`);
+					}
+				})
+			}
+			} 
+		})
+
+
+		// A Command that does the following things:
+		// 1. Get A Exercise Object from a Exercise ID
+		// 2. Open the Exercise
+		this.addCommand({
+			id: "open-exercise-with-id",
+			name: "Open Exercise with ID",
+			callback: async () => {
+				const id = await navigator.clipboard.readText();
+				// Test if the id is valid
+				// the id should be in the format of "excalidrawFileName@xy"
+				if (!id.contains(ExcalidrawFile.id_separator)) {
+					new Notice("Invalid ID");
+					return;
+				}
+				const excalidrawFileName = id.split(ExcalidrawFile.id_separator)[0];
+				const excalidrawFile = this.getExcalidrawFile(excalidrawFileName);
+				if (excalidrawFile) {
+					const linkText = excalidrawFile.idLinktextMapping[id];
+					if (linkText) {
+						await this.app.workspace.openLinkText(linkText,linkText);
+					}
+					else {
+						new Notice(`No Linktext found for exercise with id: ${id}`);
+					}
+				}
+
+			}}
+			)
+
+
 
 		this.addCommand({
 			id: "open-control-panel",
@@ -136,15 +232,22 @@ export default class LearningSystemPlugin extends Plugin {
 		this.app.vault.offref(this.onExFileModifyRef);
 		this.app.vault.offref(this.onExFileRenameRef);
 	}
+	
+	private getExcalidrawFile(fileOrFileName: TAbstractFile | string): ExcalidrawFile | undefined{
+		const  fileName = typeof fileOrFileName == "string" ? fileOrFileName : fileOrFileName.name.split(".")[0];
+		const excalidrawFile = this.cpu.bases[EXERCISE_SUBJECT.MATH].excalidraws_[fileName] ||
+		this.cpu.bases[EXERCISE_SUBJECT.DSP].excalidraws_[fileName] ||
+		this.cpu.bases[EXERCISE_SUBJECT.POLITICS].excalidraws_[fileName];
+		if (!excalidrawFile) {
+			new Notice("No excalidraw file");
+			return undefined;
+		}
+		return excalidrawFile;
+	}
 
 	private async onExcalidrawFileModify(file: TAbstractFile): Promise<void> {
 		// Attempt to get the changed excalidraw file name
-		const tFile = this.app.metadataCache.getFirstLinkpathDest(file.path,file.path);
-		const fileName = tFile?.basename ? tFile?.basename : "";
-		const excalidrawFile: ExcalidrawFile | undefined = this.cpu.bases[EXERCISE_SUBJECT.MATH]
-			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.DSP]
-			.excalidraws_[fileName] || this.cpu.bases[EXERCISE_SUBJECT.POLITICS]
-			.excalidraws_[fileName];
+		const excalidrawFile = this.getExcalidrawFile(file); 
 
 		if (excalidrawFile) {
 			// Update excalidraw elements

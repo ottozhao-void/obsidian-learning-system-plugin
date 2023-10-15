@@ -47,6 +47,7 @@ export class ControlUnit {
 			);
 			Object.values(bases[subject].excalidraws_).forEach(exc => ExcalidrawFile.createIDLinktextMapping(exc));
 		}
+	 
 
 		// Init DataModel
 		const dataFilePath = DataFile.path(moment().format(DATAFILE_DATE_FORMAT));
@@ -60,7 +61,6 @@ export class ControlUnit {
 
 	async run() {
 		this.activeExercise = this.activeBase?.next();
-		console.log(this.activeExercise);
 		this.activeExercise ?
 			await this.activeExercise.open(<ExerciseBase>this.activeBase) :
 			new Notice("next() failed to find the next exercise");
