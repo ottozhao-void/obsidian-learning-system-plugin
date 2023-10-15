@@ -113,6 +113,7 @@ export default class LearningSystemPlugin extends Plugin {
 
 
 		// Register Keyboard Event
+		// Refine the this part
 		this.registerDomEvent(document, 'keydown', (ev) => {
 			// Select Next Exercise
 			if (ev.ctrlKey && ev.shiftKey && ev.key == "A") {

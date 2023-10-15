@@ -1,4 +1,9 @@
 
+
+// TODO 设计一个 练习库 UI
+
+// 解决 同一变量在不同 Object 里的 Sync Issue.
+
 // TODO 一个保存上次Context的系统（可以是Setting, 或者直接保存在Base File里）
 
 // TODO 一个清除上次Context的系统
