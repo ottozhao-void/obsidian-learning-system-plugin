@@ -23,6 +23,7 @@
 	},
 	"dependencies": {
 		"cryptojs": "^2.5.3",
+		"diff": "^5.1.0",
 		"js-yaml": "^4.1.0",
 		"obsidian-dataview": "^0.5.56",
 		"obsidian-excalidraw-plugin": "^1.9.14",

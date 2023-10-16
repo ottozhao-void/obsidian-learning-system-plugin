@@ -23,18 +23,6 @@ export class ControlUnit {
 	dailyNote: DailyNote;
 
 
-	private constructor(
-		app:App,
-		bases: {[K: string]: ExerciseBase},
-		dataModel:DataModel,
-		dailyNote: DailyNote
-	) {
-		this.app_ = app;
-		this.bases = bases;
-		this.dataModel = dataModel;
-		this.dailyNote = dailyNote;
-	}
-
 	static async init(app:App){
 
 		// Init Exercise Base
@@ -56,7 +44,13 @@ export class ControlUnit {
 		// Init Daily Note
 		const dailyNote = await DailyNote.init(app);
 
-		return new ControlUnit(app,bases,dataModel,dailyNote);
+		const cpu = new ControlUnit();
+		cpu.app_ = app;
+		cpu.dataModel = dataModel;
+		cpu.bases = bases;
+		// cpu.dailyNote = dailyNote;
+
+		return cpu;
 	}
 
 	async run() {
@@ -76,10 +70,10 @@ export class ControlUnit {
 				// Update the Runtime Exercise Object
 				this.activeExercise.close();
 
-				await this.dailyNote.writeToDailyNote(
-					this.activeExercise.getStartTime().valueOf(),
-					this.activeExercise.getEndTime().valueOf()
-				);
+				// await this.dailyNote.writeToDailyNote(
+				// 	this.activeExercise.getStartTime().valueOf(),
+				// 	this.activeExercise.getEndTime().valueOf()
+				// );
 
 				// Update the Runtime Base Object
 				this.updateRuntimeBase(this.activeExercise.subject, "modify", this.activeExercise); // Save Exercises

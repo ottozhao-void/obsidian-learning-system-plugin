@@ -57,7 +57,7 @@ export default class LearningSystemPlugin extends Plugin {
 					const exerciseID = `${excalidrawFile.name}${ExcalidrawFile.id_separator}${xy}`;
 					// Use the xy and search all exercises of the base to see if there is a match
 					if (!this.cpu.bases[excalidrawFile.subject].isInBase(exerciseID)) {
-					  console.error(`Exercise with xy: ${xy} is not in the base`);
+					  console.error(`Exercise with xy: ${xy} is not in the base`); 
 					}
 					else {
 						console.log(`Exercise with xy: ${xy} is in the base`);
@@ -97,7 +97,7 @@ export default class LearningSystemPlugin extends Plugin {
 				})
 			}
 			} 
-		})
+		}) 
 
 
 		// A Command that does the following things:

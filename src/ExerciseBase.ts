@@ -7,6 +7,7 @@ import {GenericFile} from "./GenericFile";
 import {parseJSON} from "./utility/parser";
 import {BaseContent, ExerciseInitData, SBaseMetadata} from "./version/base_version";
 import {EXERCISE_BASE, EXERCISE_STATUSES, QUERY_STRATEGY, SUBJECTS} from "./constants";
+import { async } from './utility/io';
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -93,6 +94,17 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 			return v;
 		}, 4)}\n\`\`\``
 	}
+
+	// A Function that compares data = this.jsonify() with the actual content of the base file(path=this.path)
+	// Report any difference
+	// Use diff library to compare the two strings and report the difference
+	// async checkIntegrity(){
+	// 	const data = this.jsonify();
+	// 	const content = await this.app_.vault.adapter.read(this.path);
+	// 	if (data !== content) {
+
+	// }
+
 
 	async save(): Promise<void> {
 		const data = this.jsonify();
