@@ -7,7 +7,6 @@ import {GenericFile} from "./GenericFile";
 import {parseJSON} from "./utility/parser";
 import {BaseContent, ExerciseInitData, SBaseMetadata} from "./version/base_version";
 import {EXERCISE_BASE, EXERCISE_STATUSES, QUERY_STRATEGY, SUBJECTS} from "./constants";
-import { async } from './utility/io';
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -122,7 +121,8 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		// Insert new Exercises into runtime base.exercises
 		switch (actionType) {
 			case "modify":
-				if (ct instanceof Exercise){
+				if (ct instanceof Exercise) {
+					new Notice(`Inserting Exercise ${ct.id} into index ${ct.index}`);
 					this.exercises.splice(ct.index,0,ct);
 				}
 				break

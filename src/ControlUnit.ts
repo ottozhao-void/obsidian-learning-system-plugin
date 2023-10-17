@@ -20,7 +20,7 @@ export class ControlUnit {
 
 	activeExercise: Exercise | undefined;
 
-	dailyNote: DailyNote;
+	dailyNote: DailyNote; 
 
 
 	static async init(app:App){
@@ -66,9 +66,22 @@ export class ControlUnit {
 				this.activeExercise.start_time = 0;
 				this.updateRuntimeBase(this.activeExercise.subject, "modify", this.activeExercise); // Save Exercises
 			} else {
+				new Notice("Exercise proerties before close.....");
+				// show the properties of the activeExercise
+				const propertiesBeforeClose = Object.entries(this.activeExercise.toJSON())
+				.map(([key, value]) => `${key}: ${value}`)
+				.join("\n");
+				new Notice(propertiesBeforeClose, 10000);
 
 				// Update the Runtime Exercise Object
 				this.activeExercise.close();
+
+				new Notice("Exercise proerties after close.....");
+				const propertiesAfterClose = Object.entries(this.activeExercise.toJSON())
+				.map(([key, value]) => `${key}: ${value}`)
+				.join("\n");
+				new Notice(propertiesBeforeClose, 10000); 
+
 
 				// await this.dailyNote.writeToDailyNote(
 				// 	this.activeExercise.getStartTime().valueOf(),
