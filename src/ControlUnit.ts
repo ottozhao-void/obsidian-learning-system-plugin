@@ -80,7 +80,7 @@ export class ControlUnit {
 				const propertiesAfterClose = Object.entries(this.activeExercise.toJSON())
 				.map(([key, value]) => `${key}: ${value}`)
 				.join("\n");
-				new Notice(propertiesBeforeClose, 10000); 
+				new Notice(propertiesAfterClose, 10000); 
 
 
 				// await this.dailyNote.writeToDailyNote(
