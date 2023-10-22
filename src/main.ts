@@ -303,7 +303,7 @@ export default class LearningSystemPlugin extends Plugin {
 		return this.app.vault.on("modify", (file)=>{
 			if (file.path == fileToWatch.path){
 				const base: ExerciseBase | undefined = this.pathToBase.get(file.path)
-				console.log(base?.scanForDuplicateExercise())
+				// console.log(base?.scanForDuplicateExercise())
 			}
 		}, this)
 	}
