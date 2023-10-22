@@ -29,14 +29,17 @@ export class ControlUnit {
 		// Init Exercise Base
 		let bases: {[K: string]: ExerciseBase} = {};
 		for (let subject of Object.keys(EXERCISE_BASE)) {
-			const exists = await app.vault.adapter.exists(EXERCISE_BASE[subject].path);
+			const exists = await plugin.app.vault.adapter.exists(EXERCISE_BASE[subject].path);
+			// Register Three base fies to watch for changes
+			plugin.eventRefs.push(plugin.reigisterFileForchanges(EXERCISE_BASE[subject].path))
 			bases[subject] = await (exists ?
 					ExerciseBase.read(plugin,EXERCISE_BASE[subject].path) :
 					ExerciseBase.create(plugin,subject)
 			);
+			plugin.pathToBase.set(EXERCISE_BASE[subject].path, bases[subject]);
 			Object.values(bases[subject].excalidraws_).forEach(exc => ExcalidrawFile.createIDLinktextMapping(exc));
 		}
-	 
+ 
 
 		// Init DataModel
 		const dataFilePath = DataFile.path(moment().format(DATAFILE_DATE_FORMAT));
@@ -46,7 +49,7 @@ export class ControlUnit {
 		const dailyNote = await DailyNote.init(app);
 
 		const cpu = new ControlUnit();
-		cpu.app_ = app;
+		cpu.app_ = plugin.app;
 		cpu.dataModel = dataModel;
 		cpu.bases = bases;
 		// cpu.dailyNote = dailyNote;

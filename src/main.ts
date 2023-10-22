@@ -26,13 +26,17 @@ export default class LearningSystemPlugin extends Plugin {
 
 	ea: ExcalidrawAutomate | undefined;
 
+	eventRefs: EventRef[] = [];
+
+	pathToBase: Map<string, ExerciseBase> = new Map();
+
+
 
 	async onload() {
 
-		this.onExFileModifyRef =  this.app.vault.on("modify", this.onExcalidrawFileModify, this);
-
-		this.onExFileRenameRef = this.app.vault.on("rename",this.onExcalidrawFileRename,this);
-
+		this.eventRefs.push(this.app.vault.on("modify", this.onExcalidrawFileModify, this));
+		this.eventRefs.push(this.app.vault.on("rename",this.onExcalidrawFileRename,this));
+ 
 		setTimeout(async ()=>{
 			this.cpu = await ControlUnit.init(this); 
 			this.baseModal = new BaseModal(this.app,this.cpu)
@@ -243,9 +247,8 @@ export default class LearningSystemPlugin extends Plugin {
 		});
 	}
 
-	onunload() {
-		this.app.vault.offref(this.onExFileModifyRef);
-		this.app.vault.offref(this.onExFileRenameRef);
+	onunload() { 
+		this.eventRefs.forEach(ref => this.app.vault.offref(ref));
 	}
 	
 	private getExcalidrawFile(fileOrFileName: TAbstractFile | string): ExcalidrawFile | undefined{
@@ -293,7 +296,17 @@ export default class LearningSystemPlugin extends Plugin {
 				await this.cpu.bases[subject].indexExcalidraw();
 			}
 		}
+	} 
+
+	reigisterFileForchanges(path: string): EventRef {
+		const fileToWatch = this.app.vault.getAbstractFileByPath(path) as TAbstractFile;
+		return this.app.vault.on("modify", (file)=>{
+			if (file.path == fileToWatch.path){
+				const base: ExerciseBase | undefined = this.pathToBase.get(file.path)
+				console.log(base?.scanForDuplicateExercise())
+			}
+		}, this)
 	}
 
 }
-
+ 

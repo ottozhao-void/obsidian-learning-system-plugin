@@ -181,22 +181,20 @@ export class ExerciseBase implements SBaseMetadata{
 		await base.save()
 	}
 
-	// static checkForDuplicate(base: ExerciseBase){
-	// 	let duplicateItems: string[] = [];
-	// 	let uniqueItems = new Set<string>();
-	//
-	//
-	// 	// for (let exercise of base.exercises) {
-	// 	// 	if (uniqueItems.has(exercise.id)) base.exercises.splice(exercise.index,1);
-	// 	// 	else uniqueItems.add(exercise.id);
-	// 	// }
-	//
-	// 	for (let exercise of base.exercises) {
-	// 		if (uniqueItems.has(exercise.id)) duplicateItems.push(exercise.id);
-	// 		else uniqueItems.add(exercise.id);
-	// 	}
-	// 	console.log(duplicateItems);
-	// }
+	scanForDuplicateExercise(): string[] {
+		let duplicateItems: string[] = [];
+		let uniqueItems = new Set<string>();
+
+		for (let exercise of this.exercises) {
+			if (uniqueItems.has(exercise.id)) duplicateItems.push(exercise.id);
+			else uniqueItems.add(exercise.id);
+		}
+		return duplicateItems;
+	}
+
+	duplicateExists(): boolean{
+		return this.scanForDuplicateExercise().length != 0;
+	}
 
 
 	calculateItemCompleted(): number{
