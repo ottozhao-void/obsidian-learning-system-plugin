@@ -38,11 +38,6 @@ export class Exercise implements ExerciseMetadata_Latest{
 		this.history = exerciseInfo?.history || [];
 	}
 
-	static extractIdFromLink(el: ExerciseLinkText) {
-		const match = el.match(/\^\s*(\S*)/);
-		return match?.[1] || "";
-	}
-
 	close() {
 		this.end_time = moment().valueOf();
 

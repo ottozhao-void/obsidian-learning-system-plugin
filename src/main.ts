@@ -34,7 +34,7 @@ export default class LearningSystemPlugin extends Plugin {
 		this.onExFileRenameRef = this.app.vault.on("rename",this.onExcalidrawFileRename,this);
 
 		setTimeout(async ()=>{
-			this.cpu = await ControlUnit.init(this.app); 
+			this.cpu = await ControlUnit.init(this); 
 			this.baseModal = new BaseModal(this.app,this.cpu)
 		},1500);
 		
@@ -206,7 +206,7 @@ export default class LearningSystemPlugin extends Plugin {
 				for (let subject of Object.keys(EXERCISE_BASE)) {
 					const path = EXERCISE_BASE[subject].path;
 					let baseJSON = parseJSON(await this.app.vault.adapter.read(normalizePath(path)))
-					this.cpu.bases[subject] = await ExerciseBase.fromJSON(this.app,baseJSON);
+					this.cpu.bases[subject] = await ExerciseBase.fromJSON(this,baseJSON);
 				}
 			}
 		})

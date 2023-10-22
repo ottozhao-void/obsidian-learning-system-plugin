@@ -2,10 +2,11 @@ import {App, moment, Notice} from "obsidian";
 import {ExerciseBase,} from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {ExcalidrawFile} from "./Excalidraw";
-import {DATAFILE_DATE_FORMAT, EXERCISE_BASE, QUERY_STRATEGY, SUBJECTS} from "./constants";
+import { DATAFILE_DATE_FORMAT, EXERCISE_BASE, EXERCISE_SUBJECT, QUERY_STRATEGY, SUBJECTS } from './constants';
 import {DataFile} from "./DataFile";
 import {DataModel} from "./DataModel";
 import {DailyNote} from "./DailyNote";
+import LearningSystemPlugin from "main";
 
 
 export class ControlUnit {
@@ -23,15 +24,15 @@ export class ControlUnit {
 	dailyNote: DailyNote; 
 
 
-	static async init(app:App){
+	static async init(plugin:LearningSystemPlugin){
 
 		// Init Exercise Base
 		let bases: {[K: string]: ExerciseBase} = {};
 		for (let subject of Object.keys(EXERCISE_BASE)) {
 			const exists = await app.vault.adapter.exists(EXERCISE_BASE[subject].path);
 			bases[subject] = await (exists ?
-					ExerciseBase.read(app,EXERCISE_BASE[subject].path) :
-					ExerciseBase.create(app,subject)
+					ExerciseBase.read(plugin,EXERCISE_BASE[subject].path) :
+					ExerciseBase.create(plugin,subject)
 			);
 			Object.values(bases[subject].excalidraws_).forEach(exc => ExcalidrawFile.createIDLinktextMapping(exc));
 		}

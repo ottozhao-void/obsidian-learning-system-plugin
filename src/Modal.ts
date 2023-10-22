@@ -149,7 +149,7 @@ export class BaseModal extends Modal {
 			.addDropdown(dp => {
 				if (this.cpu.activeBase){
 					const activeBase = this.cpu.activeBase;
-					dp.addOptions(this.cpu.activeBase.contextOptions_)
+					dp.addOptions(Object.fromEntries(this.cpu.activeBase.displayUniqueName_))
 						.onChange(value => {
 							activeBase.activeContext_ = value;
 							console.log(`Context is set to ${activeBase.activeContext_}`)
@@ -158,8 +158,8 @@ export class BaseModal extends Modal {
 					console.log(`Context is set to ${activeBase.activeContext_}`)
 				}
 				else dp.addOption("null", "null");
-			});
-	}
+			}); 
+	}   
 
 	initSubjectDiv(subjectDiv: HTMLDivElement, baseConfig: HTMLDivElement) {
 		// Heading

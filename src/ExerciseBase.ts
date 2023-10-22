@@ -9,6 +9,7 @@ import {BaseContent, ExerciseInitData, SBaseMetadata} from "./version/base_versi
 import {EXERCISE_BASE, EXERCISE_STATUSES, QUERY_STRATEGY, SUBJECTS} from "./constants";
 import { ExcalidrawAutomate } from "obsidian-excalidraw-plugin/lib/ExcalidrawAutomate";
 import { getEA } from 'obsidian-excalidraw-plugin';
+import LearningSystemPlugin from "main";
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -19,10 +20,9 @@ import { getEA } from 'obsidian-excalidraw-plugin';
 
 
 
-export class ExerciseBase extends GenericFile implements SBaseMetadata{
-	app_:App;
+export class ExerciseBase implements SBaseMetadata{
 
-	dataViewAPI_: DataviewApi = getAPI() as DataviewApi;
+	plugin_: LearningSystemPlugin;
 
 	size: number;
 
@@ -42,25 +42,24 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	activeContext_: string = '';
 
-	exerciseContext_: Set<string> = new Set<string>();
+	UniqueExcalidrawName_: Set<string> = new Set<string>();
 
-	contextOptions_: Record<string, string>
+	displayUniqueName_: Map<string, string>
 	
 	ea_: ExcalidrawAutomate = getEA();
 
-	constructor(app: App, baseMetadata: ExerciseInitData | SBaseMetadata) {
-		super(app,baseMetadata.path);
-		this.dataViewAPI_ = getAPI() as DataviewApi;
+	constructor(plugin: LearningSystemPlugin, baseMetadata: ExerciseInitData | SBaseMetadata) {
+		this.plugin_ = plugin;
 		Object.assign(this, baseMetadata);
 	}
 
 	// This function finds all excalidraw files with this.tag and read them
 	async indexExcalidraw(){
-		const targetExcalidrawPages: DataArray<Record<string, Literal>> = this.dataViewAPI_?.pages(this.tag) as DataArray<Record<string, Literal>>;
+		const targetExcalidrawPages: DataArray<Record<string, Literal>> = this.plugin_.dataviewAPI?.pages(this.tag) as DataArray<Record<string, Literal>>;
 		for (let page of targetExcalidrawPages){
 			const name = page.file.name;
 			const path = page.file.path;
-			this.excalidraws_[name] = await ExcalidrawFile.fromExcalidrawMetadata(this.app_, {
+			this.excalidraws_[name] = await ExcalidrawFile.fromExcalidrawMetadata(this.plugin_.app, {
 				name,
 				subject: this.subject,
 				path
@@ -111,7 +110,7 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 
 	async save(): Promise<void> {
 		const data = this.jsonify();
-		await this.app_.vault.adapter.write(this.path, data);
+		await this.plugin_.app.vault.adapter.write(this.path, data);
 	}
 
 	reIndexExercise(){
@@ -147,28 +146,32 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		this.items_completed = this.calculateItemCompleted();
 	}
 
-	static async read(app:App, path:string): Promise<ExerciseBase>{
+	static async read(plugin:LearningSystemPlugin, path:string): Promise<ExerciseBase>{
 		let baseJSON: SBaseMetadata = parseJSON(await app.vault.adapter.read(normalizePath(path)))
-		return ExerciseBase.fromJSON(app, baseJSON);
+		return ExerciseBase.fromJSON(plugin, baseJSON);
 	}
 
-	static async create(app:App, subject: string): Promise<ExerciseBase>{
-		const base = new ExerciseBase(app, EXERCISE_BASE[subject])
+	static async create(plugin:LearningSystemPlugin, subject: string): Promise<ExerciseBase>{
+		const base = new ExerciseBase(plugin, EXERCISE_BASE[subject])
 		await base.initIndex();
 		await base.save();
 		return base;
 	}
 
-	static async fromJSON(app:App, obj: SBaseMetadata): Promise<ExerciseBase> {
+	static async fromJSON(plugin:LearningSystemPlugin, obj: SBaseMetadata): Promise<ExerciseBase> {
 		obj.exercises = obj.exercises.map(ex => Exercise.fromJSON(app,ex))
-		let base: ExerciseBase = new ExerciseBase(app, obj);
+		let base: ExerciseBase = new ExerciseBase(plugin, obj);
 		await base.indexExcalidraw();
-		base.pullContext();
-		base.contextOptions_ = Object.fromEntries(
-			Array.from(base.exerciseContext_)
-				.map(item => [item,item])
-		)
+		base.exercises.forEach(ex => {
+			base.UniqueExcalidrawName_.add(ex.id.split(ExcalidrawFile.id_separator)[0]);
+		})
 
+		// 提供以file为单元的做题模式，加强上下context的联系
+		base.UniqueExcalidrawName_ = new Set(Array.from(base.UniqueExcalidrawName_).sort());
+		base.displayUniqueName_ = new Map<string,string>();
+		base.UniqueExcalidrawName_.forEach((name, index) => {
+			base.displayUniqueName_.set(name, name);
+		})
 		return base;
 	}
 
@@ -195,11 +198,6 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	// 	console.log(duplicateItems);
 	// }
 
-	pullContext() {
-		this.exercises.forEach(ex => {
-			this.exerciseContext_.add(ex.id.split(ExcalidrawFile.id_separator)[0]);
-		})
-	}
 
 	calculateItemCompleted(): number{
 		let num = 0;
@@ -257,31 +255,31 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 		this.activeContext_ = exercise.id.split("@")[0]
 	}
 
-	static async migrateFromOBtoNB(app:App){
-		for (let subject of Object.keys(EXERCISE_BASE)){
-			const path = EXERCISE_BASE[subject].path;
-			const base = await ExerciseBase.read(app,path);
-			const exercises = base.exercises;
-			base.exercises = exercises.map(ex => {
-				const source = ex.source;
-				const id = base.getExerciseID(source);
-				return Exercise.fromJSON(app, {
-					subject: ex.subject,
-					state: ex.state,
-					remark: ex.remark,
-					index: ex.index,
-					history: ex.history,
-					id,
-					start_time: ex.start_time,
-					end_time: ex.end_time
-				})
-			})
-			await base.save()
-		}
-	}
+	// static async migrateFromOBtoNB(app:App){
+	// 	for (let subject of Object.keys(EXERCISE_BASE)){
+	// 		const path = EXERCISE_BASE[subject].path;
+	// 		const base = await ExerciseBase.read(,path);
+	// 		const exercises = base.exercises;
+	// 		base.exercises = exercises.map(ex => {
+	// 			const source = ex.source;
+	// 			const id = base.getExerciseID(source);
+	// 			return Exercise.fromJSON(app, {
+	// 				subject: ex.subject,
+	// 				state: ex.state,
+	// 				remark: ex.remark,
+	// 				index: ex.index,
+	// 				history: ex.history,
+	// 				id,
+	// 				start_time: ex.start_time,
+	// 				end_time: ex.end_time
+	// 			})
+	// 		})
+	// 		await base.save()
+	// 	}
+	// }
 
 	createNewExercise(linktext:ExerciseLinkText, index: number,size: number): Exercise {
-		return Exercise.fromJSON(this.app_, {
+		return Exercise.fromJSON(this.plugin_.app, {
 			subject: this.subject,
 			state: EXERCISE_STATUSES.New,
 			remark: "",
