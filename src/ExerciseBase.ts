@@ -7,6 +7,8 @@ import {GenericFile} from "./GenericFile";
 import {parseJSON} from "./utility/parser";
 import {BaseContent, ExerciseInitData, SBaseMetadata} from "./version/base_version";
 import {EXERCISE_BASE, EXERCISE_STATUSES, QUERY_STRATEGY, SUBJECTS} from "./constants";
+import { ExcalidrawAutomate } from "obsidian-excalidraw-plugin/lib/ExcalidrawAutomate";
+import { getEA } from 'obsidian-excalidraw-plugin';
 
 
 // subject SwapKeyValue<T extends Record<string, string>> = {
@@ -43,6 +45,8 @@ export class ExerciseBase extends GenericFile implements SBaseMetadata{
 	exerciseContext_: Set<string> = new Set<string>();
 
 	contextOptions_: Record<string, string>
+	
+	ea_: ExcalidrawAutomate = getEA();
 
 	constructor(app: App, baseMetadata: ExerciseInitData | SBaseMetadata) {
 		super(app,baseMetadata.path);

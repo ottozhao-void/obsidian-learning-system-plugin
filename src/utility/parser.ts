@@ -1,4 +1,4 @@
-import {ExcalidrawElement, ExcalidrawFile, EXERCISE_BOX} from "../Excalidraw";
+import {ExcalidrawElement_, ExcalidrawFile, EXERCISE_BOX} from "../Excalidraw";
 import {ExerciseLinkText} from "../Exercise";
 import * as yaml from 'js-yaml';
 import {App, normalizePath, parseYaml, Vault} from "obsidian";

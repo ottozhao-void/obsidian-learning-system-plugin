@@ -1,5 +1,11 @@
 
-# TODO: Date IO
+
+# TODO: 
+> 1. 在每次题目结束时，自动保存题目开始和结束时间到每日Note中
+> 2. 自动检测开始SR和结束SR的时间并记录到Note中
+> 3. 从Section - Daily Activity中抽取出数据，并进行自动化罗列
+
+# TODO: Data IO
 
 # TODO: 可以直接打开在Excalidraw中所选择的Exercise
 

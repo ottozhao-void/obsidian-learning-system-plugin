@@ -1,4 +1,4 @@
-import {EventRef, normalizePath, Notice, Plugin, TAbstractFile} from 'obsidian';
+import { EventRef, normalizePath, Notice, Plugin, TAbstractFile, TFile } from 'obsidian';
 import { ExcalidrawFile } from './Excalidraw';
 import {DataviewApi} from "obsidian-dataview/lib/api/plugin-api";
 import {getAPI} from "obsidian-dataview";
@@ -8,7 +8,8 @@ import {AssessModal, BaseModal, DeleteExerciseModal} from "./Modal";
 import {SystemSetting} from "./SystemSetting"
 import {ExerciseBase} from "./ExerciseBase";
 import {parseJSON} from "./utility/parser";
-
+import {getEA, ExcalidrawElement} from "obsidian-excalidraw-plugin";
+import { ExcalidrawAutomate } from 'obsidian-excalidraw-plugin/lib/ExcalidrawAutomate';
 
 export default class LearningSystemPlugin extends Plugin {
 	settings: SystemSetting;
@@ -23,6 +24,8 @@ export default class LearningSystemPlugin extends Plugin {
 
 	dataviewAPI: DataviewApi | undefined = getAPI(this.app);
 
+	ea: ExcalidrawAutomate | undefined;
+
 
 	async onload() {
 
@@ -31,7 +34,7 @@ export default class LearningSystemPlugin extends Plugin {
 		this.onExFileRenameRef = this.app.vault.on("rename",this.onExcalidrawFileRename,this);
 
 		setTimeout(async ()=>{
-			this.cpu = await ControlUnit.init(this.app);
+			this.cpu = await ControlUnit.init(this.app); 
 			this.baseModal = new BaseModal(this.app,this.cpu)
 		},1500);
 		
@@ -99,6 +102,18 @@ export default class LearningSystemPlugin extends Plugin {
 			} 
 		}) 
 
+		// A Command that returns a list of selected excalidraw elements
+		this.addCommand({ 
+			id: "get-selected-elements",
+			name: "Get Selected Elements",
+			callback:  () => {
+				console.log(this.ea);
+				const elements = this.ea?.getViewSelectedElements() as  ExcalidrawElement[];
+				console.log(this.ea?.onFileOpenHook);
+			} 
+		})
+ 
+		
 
 		// A Command that does the following things:
 		// 1. Get A Exercise Object from a Exercise ID

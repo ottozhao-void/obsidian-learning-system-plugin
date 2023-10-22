@@ -36,6 +36,9 @@ export enum EXERCISE_STATUSES {
 	// new: 未做过的题目
 	New = "new",
 
+	// shelve: 暂时先搁置哪些现在还不需要做的题目
+	Shelve = "shelve",
+	
 	// laser: 有清晰思路，计算快速，结果正确
 	Laser = "laser",
 	// inspiring: 有清晰思路，计算快速，结果正确，但题目里有新的、更好的解题方法

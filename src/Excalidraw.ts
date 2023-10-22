@@ -1,15 +1,18 @@
-import {App, EventRef, normalizePath, Notice, TAbstractFile, TFile} from "obsidian";
+import {App, EventRef, normalizePath, Notice, TAbstractFile, TFile, Workspace} from "obsidian";
 import {GenericFile} from "./GenericFile";
 import {ExerciseBase} from "./ExerciseBase";
 import {Exercise, ExerciseLinkText} from "./Exercise";
 import {parseJSON} from "./utility/parser";
 import {SUBJECTS} from "./constants";
+import { ExcalidrawElement, getEA} from "obsidian-excalidraw-plugin";
+import ExcalidrawPlugin from "obsidian-excalidraw-plugin/lib/main";
+import { ExcalidrawAutomate } from "obsidian-excalidraw-plugin/lib/ExcalidrawAutomate";
 
 export interface ExcalidrawJSON {
-	elements: ExcalidrawElement[];
+	elements: ExcalidrawElement_[];
 }
 
-export interface ExcalidrawElement {
+export interface ExcalidrawElement_ {
 	strokeColor:string;
 	type: string;
 	id?: string;
@@ -18,7 +21,7 @@ export interface ExcalidrawElement {
 	y:number;
 }
 
-export const EXERCISE_BOX: Partial<ExcalidrawElement> = {
+export const EXERCISE_BOX: Partial<ExcalidrawElement_> = {
 	strokeColor: "#846358",
 	type: "rectangle"
 }
@@ -36,7 +39,7 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 
 	name:string
 
-	elements: ExcalidrawElement[];
+	elements: ExcalidrawElement_[];
 
 	path: string;
 
@@ -44,6 +47,10 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 
 	idLinktextMapping: Record<string, ExerciseLinkText>;
 	// linktextIDMapping: ;
+	
+	ea: ExcalidrawAutomate = getEA();
+
+	static ea: ExcalidrawAutomate = getEA();
 
 	static id_separator = "@"
 
@@ -58,7 +65,7 @@ export class ExcalidrawFile extends GenericFile implements ExcalidrawMetadata {
 			.map(el => `${this.name}#^${el.id}`)
 	}
 	// 现在读取Excalidraw文件的目的只是读取其内部的Excalidraw Elements
-	static async read(app:App, path:string): Promise<ExcalidrawElement[]> {
+	static async read(app:App, path:string): Promise<ExcalidrawElement_[]> {
 		// Get Excalidraw Content
 		const content = await app.vault.adapter.read(normalizePath(path));
 		// Parse the content for elements
